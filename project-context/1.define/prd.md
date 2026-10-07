@@ -50,7 +50,7 @@ A multi-agent design is appropriate because the product contains distinct respon
 - Insight generation requires constrained Portuguese narrative output based on validated summaries.
 - Evaluation requires repeatable categorization scoring against a golden dataset.
 
-For a capstone MVP, this separation supports clearer implementation, simpler testing, and safer LLM use. The selected `crewai` runtime can coordinate specialized agents for classification, analysis, and explanation, while deterministic application services retain authority over data validation and numeric calculations.
+For a capstone MVP, this separation supports clearer implementation, simpler testing, and safer LLM use. The selected `crewai` runtime is limited to ambiguous classification fallback and insight writing; deterministic Python services own ingestion, classification precedence, aggregation, and evaluation outside the Crew.
 
 ## 2. Market Context & User Analysis
 
@@ -155,54 +155,55 @@ The Build phase should use `crewai` only where orchestration improves clarity. C
 
 Recommended agent collaboration pattern:
 
-- Sequential pipeline for ingestion, normalization, categorization, aggregation, and insight generation.
+- Service-led pipeline for ingestion, normalization, deterministic categorization, aggregation, and insight generation; CrewAI executes only unresolved classification fallback and insight writing from precomputed summaries.
 - Human-in-the-loop category review before final monthly insights when confidence is low or user corrections exist.
 - Deterministic services own validation, totals, percentages, date ranges, and accuracy measurement.
-- LLM agents produce narrative explanations only from structured, precomputed summaries and allowed context.
+- LLM agents resolve classification ambiguity or write explanations using only allowed context; they never calculate totals or evaluate the golden set.
+- CrewAI contracts are fixed in SAD section 2: sequential process, memory disabled, delegation disabled, YAML agents/tasks, classifier max_iter=1, insight max_iter<=2, and Pydantic task outputs. Invalid, ungrounded, or unsafe output triggers deterministic fallback.
 
 ### Core Agent Definitions
 
-#### agent: ingestion_agent
+#### service: ingestion_service
 
 - **role**: Expense ingestion and validation specialist.
 - **goal**: Convert CSV/manual inputs into normalized expense records or actionable validation errors.
 - **tools**: CSV parser, schema validator, date parser, BRL amount normalizer, import error reporter.
-- **runtime notes**: Deterministic behavior preferred; no LLM required for MVP ingestion.
+- **runtime notes**: Deterministic Python service outside CrewAI; no LLM calls.
 
 #### agent: categorization_agent
 
 - **role**: Expense classification specialist.
-- **goal**: Assign categories using rules, merchant keywords, global frequencies, household history, and optional AI fallback for ambiguous items.
-- **tools**: Category taxonomy, merchant keyword map, household correction history, confidence scorer, optional OpenAI classification helper.
-- **runtime notes**: Must emit category, confidence, reason, and whether user review is recommended. Classification must be measurable against the golden dataset.
+- **goal**: Propose an active leaf category only for ambiguity unresolved by the Python classification service's rules and history.
+- **tools**: Configured LLM with service-supplied active-leaf taxonomy and allow-listed alias-safe context; no direct repositories.
+- **runtime notes**: Must emit `ClassificationDecision` through `output_pydantic`, including category, confidence, reason, source, and review flag; max_iter=1 and no delegation. Deterministic classification remains measurable without invoking this agent.
 
-#### agent: aggregation_agent
+#### service: aggregation_service
 
 - **role**: Monthly spending analyst.
 - **goal**: Produce deterministic totals, category breakdowns, month-over-month comparisons, recurring-expense summaries, and source transaction groups.
 - **tools**: Expense repository, aggregation functions, recurrence detector, date range utilities.
-- **runtime notes**: All arithmetic must be deterministic and covered by tests.
+- **runtime notes**: Ordinary Python service outside CrewAI; all arithmetic must be deterministic and covered by tests.
 
 #### agent: insight_agent
 
 - **role**: Portuguese educational insight writer.
 - **goal**: Convert structured monthly summaries into plain-language, nonjudgmental insights in pt-BR.
 - **tools**: OpenAI API provider abstraction, prompt templates, safety constraints, source-expense references.
-- **runtime notes**: Must avoid investment, tax, credit, affordability, or prescriptive financial advice. Must ground each insight in provided categories, transactions, or date ranges.
+- **runtime notes**: Uses precomputed summaries and emits `InsightCard` through `output_pydantic`; max_iter<=2 and no delegation. Backend validation rejects missing/invented sources and investment, tax, credit, affordability, or prescriptive advice, returning deterministic fallback.
 
-#### agent: evaluation_agent
+#### service: evaluation_service
 
 - **role**: Categorization accuracy evaluator.
 - **goal**: Compare predicted categories against expected categories in the golden dataset and produce repeatable accuracy reports.
 - **tools**: Golden dataset loader, classifier runner, confusion report generator, acceptance threshold checker.
-- **runtime notes**: Must run on demand and report pass/fail against the 70% MVP threshold.
+- **runtime notes**: Ordinary Python service outside CrewAI. Acceptance evaluation runs with LLM disabled and zero provider calls; reports pass/fail against the 70% MVP threshold.
 
 ### Integration Requirements
 
 - **Frontend**: Responsive web interface for local/demo use.
 - **Backend**: Modular API with services for expenses, categories, imports, aggregation, insights, and evaluation.
 - **LLM provider**: OpenAI API through a provider abstraction. Use a cost-efficient GPT-4o mini-class model or current equivalent at implementation time.
-- **Storage**: Firebase Firestore on the free tier for the capstone MVP, with repository interfaces so the storage layer can be replaced later if needed. Must preserve domain entities for future user accounts and household membership.
+- **Storage**: Week 3 uses the Firestore Emulator through repository interfaces; in-memory repositories support the initial flow and unit tests. Firebase Firestore free tier remains the later remote database choice, but cloud project and ADC setup follow successful emulator persistence, CSV/JSON export, and deletion tests plus security review. Preserve domain entities for future user accounts and household membership.
 - **Authentication**: Deferred for MVP runtime, but data model and route boundaries must be ready for future login/password auth.
 - **Email**: Deferred; future password recovery requires email sending.
 - **Bank integration**: Explicitly out of scope.
@@ -287,7 +288,7 @@ The MVP domain model must support, at minimum:
 - AC-P0.4.3: Household-specific correction evidence takes precedence over global category frequencies; neither frequency source may override an explicit user category, an exact household correction, or an unambiguous deterministic rule.
 - AC-P0.4.4: Each classifier-produced decision stores one active leaf category, a confidence score from 0.0 to 1.0, a reason, and the decision source. User-supplied categories are recorded as user overrides.
 - AC-P0.4.5: Classifier-produced decisions with confidence below 0.70 are marked review-needed and shown in the review list. The score is a decision-confidence heuristic, not a calibrated probability.
-- AC-P0.4.6: MVP acceptance requires top-1 accuracy of at least 70%, calculated as exact predicted canonical leaf-category matches divided by total golden-dataset records. Report the numerator and denominator; run the acceptance evaluation with LLM fallback disabled or mocked.
+- AC-P0.4.6: MVP acceptance requires top-1 accuracy of at least 70%, calculated as exact predicted canonical leaf-category matches divided by total golden-dataset records. Report the numerator and denominator; run acceptance evaluation outside CrewAI with LLM fallback disabled and zero provider calls. Mocked provider tests are separate fallback contract tests, not acceptance evaluation.
 
 #### P0.5 Category Review and Correction
 
@@ -339,7 +340,7 @@ The MVP domain model must support, at minimum:
 - AC-P0.8.3: Every insight references the category, date range, or expenses that support it.
 - AC-P0.8.4: Insights avoid regulated financial advice, investment advice, tax advice, credit decisions, or affordability claims.
 - AC-P0.8.5: If the LLM provider fails or is not configured, the app shows deterministic fallback summaries rather than blocking the dashboard.
-- AC-P0.8.6: Merchant/payee data sent to the LLM must use fictitious aliases and business-context descriptions from the internal merchant context layer unless the user explicitly chooses a less restrictive demo mode.
+- AC-P0.8.6: Every LLM request uses only the allow-listed merchant-context projection: fictitious aliases, business-context descriptions, category hints, and aggregate recurrence behavior. Raw merchant/payee values, original descriptions, reversible mappings, and internal mapping IDs are always excluded; no raw-value opt-in or server gate exists.
 - AC-P0.8.7: Source references shown back to the user must be restored from the internal alias map, not guessed by the LLM.
 
 #### P0.9 Data Export and Deletion
@@ -412,7 +413,7 @@ The following features are explicitly future work and out of MVP scope:
 
 - Import 50 demo expenses in under 5 seconds on a typical local development machine.
 - Render the monthly dashboard in under 2 seconds after data is available.
-- Classify the 30-50 row golden dataset in under 30 seconds when LLM fallback is disabled or mocked.
+- Classify the 30-50 row golden dataset in under 30 seconds with LLM fallback disabled and zero provider calls.
 - Generate monthly insights in under 20 seconds when the OpenAI API is configured and available.
 - Provide a deterministic fallback summary when insight generation exceeds timeout or fails.
 
@@ -421,9 +422,9 @@ The following features are explicitly future work and out of MVP scope:
 - Treat household financial records as sensitive personal data.
 - Do not commit API keys, credentials, real financial records, or secrets.
 - Use environment variables for OpenAI API configuration.
-- Minimize personal identifiers sent to LLM providers; use aggregated summaries and anonymized merchant/payee aliases by default.
+- Minimize personal identifiers sent to LLM providers; always use aggregated summaries and the allow-listed alias-safe merchant-context projection.
 - Maintain an internal merchant context layer that maps real merchant/payee values to fictitious aliases, stores a short business-context description for categorization, and can restore original labels only inside trusted backend responses to the user.
-- Do not send raw merchant/payee names to the LLM by default. If a demo mode allows raw names, it must be explicit, documented, and disabled by default.
+- Never send raw merchant/payee names, original descriptions, or reversible mappings to the LLM. No less-restrictive demo mode or raw-value opt-in is allowed.
 - Avoid logging sensitive expense details in plaintext.
 - Provide data deletion and export controls.
 - Align future production design with LGPD principles: purpose limitation, data minimization, transparency, access/export, deletion, and security safeguards.
@@ -523,7 +524,7 @@ Users should not need to understand the internal agent architecture. The interfa
 ### Technical Metrics
 
 - Dashboard arithmetic correctness: 100% pass on deterministic unit tests.
-- Golden dataset evaluation reproducibility: same input and configuration produce same accuracy report when LLM fallback is disabled or mocked.
+- Golden dataset evaluation reproducibility: same input and configuration produce the same accuracy report with LLM fallback disabled, outside CrewAI and with zero provider calls.
 - LLM safety: 0 accepted insights containing investment, tax, credit, or affordability advice in QA safety checks.
 - Secret hygiene: 0 committed secrets detected before delivery.
 - Integration smoke test: CSV import to dashboard to insight/fallback flow passes before release.
@@ -549,7 +550,8 @@ Users should not need to understand the internal agent architecture. The interfa
 #### Phase 2: Build
 
 - Scaffold project using selected runtime conventions.
-- Implement Firebase Firestore storage, data model, and sample/golden datasets.
+- Implement repository interfaces, the data model, and sample/golden datasets using in-memory repositories initially and the Firestore Emulator for the Week 3 persistent slice; no cloud project or ADC required.
+- Verify persistence, CSV/JSON export, and deletion against the emulator before introducing the optional Firebase free-tier cloud project and ADC, subject to IAM/security review.
 - Implement CSV import and manual entry.
 - Implement category taxonomy, classifier, correction history, and confidence scoring.
 - Implement dashboard aggregations.
@@ -650,6 +652,7 @@ Commercial launch, monetization, and pricing are future work. Before public prod
 - OECD Recommendation on Financial Literacy.
 - FEBRABAN financial education sources.
 - Serasa household debt/financial education context.
+- Professor review supplied by the operator on 2026-10-06; architecture alignment requested by the operator.
 
 ## Assumptions
 
@@ -670,13 +673,13 @@ Commercial launch, monetization, and pricing are future work. Before public prod
 - Expenses are assigned to one active leaf category in a hierarchy; parent categories are roll-up groups only.
 - Classifier confidence is a 0.0-1.0 heuristic; decisions below 0.70 are flagged for review.
 - Insights are generated through the OpenAI API when configured, using `gpt-4o-mini` as the default model and deterministic fallback summaries when unavailable.
-- Firebase Firestore free tier is the default remote database choice for the capstone MVP.
+- Firebase Firestore free tier is the later remote database choice; Week 3 runs against emulator/in-memory repositories without a cloud project or ADC, with an emulator persistence/export/deletion gate before cloud connection.
 - Deterministic services own all totals, percentages, comparisons, and accuracy calculations.
 - Categorization learning uses global category frequencies and household-specific history.
 - Category restructuring includes create, rename, merge, and expense reassignment.
 - The demo MVP acceptance threshold is 70% categorization accuracy on the golden dataset.
 - The golden dataset should contain 30-50 anonymized Brazilian household sample expenses and be maintained in both CSV and JSON fixture formats.
-- Merchant/payee names sent to LLM prompts are replaced by fictitious aliases and business-context descriptions by default, with reversible mapping only inside trusted backend services.
+- Every LLM request uses the unconditional allow-listed alias-safe projection; raw merchant/payee names, original descriptions, and reversible mappings remain inside trusted backend services, without opt-in exceptions.
 - Home Financial is an educational/personal finance awareness product, not a regulated financial adviser.
 - Commercial market-size figures are not required for capstone MVP acceptance.
 
@@ -696,3 +699,11 @@ Commercial launch, monetization, and pricing are future work. Before public prod
 - Persona id: product-mgr
 - Action: quality-review-fixes
 - Artifact: clarified recurrence, shared-demo scope, classifier policy, taxonomy, and MRD traceability
+- Timestamp: 2026-10-06
+- Persona id: system-arch
+- Action: synchronize-prd-with-authorized-professor-review
+- Artifact: synchronized agent/service boundaries, fixed CrewAI contract references, unconditional LLM privacy, and emulator-first Week 3 with SAD; retained feature scope and 70% accuracy threshold
+- AAMAD_TARGET_RUNTIME: crewai (configured target)
+- Tool usage: targeted reads/searches and apply_patch; focused documentation consistency checks
+- Model/temperature/max_tokens: no application LLM execution; editor generation controls unavailable
+- Prompt Trace: omitted; documentation-only synchronization with no financial records or provider calls

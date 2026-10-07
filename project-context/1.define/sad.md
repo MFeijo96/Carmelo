@@ -17,9 +17,9 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 ### MVP Design Principles
 
 - Keep deterministic services authoritative for validation, arithmetic, persistence, deletion, export, and evaluation.
-- Use CrewAI orchestration only where specialized agent boundaries improve clarity: categorization, monthly analysis, insight writing, and evaluation coordination.
+- Use CrewAI only for unresolved classification ambiguity and insight writing from precomputed summaries. Ingestion, aggregation, and evaluation are ordinary Python services outside the Crew.
 - Prefer explainability over automation opacity: each classification and insight must expose its source, reason, confidence, and supporting data.
-- Minimize sensitive data sent to LLM providers by using aggregated summaries and merchant/payee aliases by default.
+- Minimize sensitive data sent to LLM providers by always using aggregated summaries and an allow-listed alias-safe context.
 - Provide exactly one shared local/demo household workspace without login, member identities, household selection, or role enforcement. Keep production authentication and membership as future domain extensions; do not present the demo as suitable for real financial data.
 - Never send raw merchant/payee values or reversible alias mappings to an LLM provider. Send only an allow-listed projection containing a fictitious alias, business-context description, category hints, and aggregate recurrence behavior.
 - Design for repeatable QA: golden-dataset evaluation, deterministic fallbacks, schema validation, and traceability to PRD acceptance criteria.
@@ -52,7 +52,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 
 - **Frontend**: responsive React + TypeScript web application built with Vite, because the PRD requires web-first local/demo usage and mobile-friendly access.
 - **Backend**: modular Python API built with FastAPI because `aamad.config.yml` declares Python as the primary language and `crewai` as the selected runtime.
-- **Persistence**: Firebase Cloud Firestore on the free tier is the MVP runtime database, accessed by the FastAPI backend behind repository interfaces. The frontend never connects directly to Firestore. Local development uses server-side Application Default Credentials; unit tests use in-memory repositories, and integration tests use the Firestore Emulator. Keep the app local-only and use synthetic demo data until authentication and authorization are implemented.
+- **Persistence**: Week 3 runs against the Firestore Emulator behind backend repository interfaces; in-memory repositories support initial development and unit tests. No Firebase cloud project or Application Default Credentials (ADC) are required for this slice. Introduce the optional Cloud Firestore free-tier connection and ADC only after persistence, CSV/JSON export, and deletion pass integration tests against the emulator, followed by IAM/security review. The frontend never connects directly to Firestore. Keep the app local-only and use synthetic demo data until authentication and authorization are implemented.
 - **LLM integration**: OpenAI provider abstraction with `gpt-4o-mini` as the default model name, configurable by environment variable.
 - **LLM interaction mode**: non-streaming for MVP insight generation; responses are small, structured, and easier to validate before display.
 - **Financial calculations**: never delegated to LLMs. Totals, percentages, comparisons, recurrence flags, and evaluation metrics are computed by deterministic services.
@@ -84,12 +84,12 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 | ID | Decision | Rationale | Consequence / trace |
 | --- | --- | --- | --- |
 | AD-01 | Use React + TypeScript + Vite and FastAPI | Matches the web-first PRD and configured Python runtime | Separate frontend/API contracts; local app ports bind to loopback; PRD P0.1-P0.9 |
-| AD-02 | Use Firebase Cloud Firestore free tier through backend repositories | Matches the PRD storage choice while keeping persistence replaceable | Cloud project and server-side ADC/IAM setup are required; emulator is for integration tests; PRD Integration Requirements |
+| AD-02 | Start with emulator/in-memory repositories; defer Cloud Firestore free-tier connection | Preserves the PRD storage choice without making cloud credentials a Week 3 dependency | Emulator persistence/export/deletion tests must pass before cloud project, ADC/IAM setup, and security review; PRD Integration Requirements |
 | AD-03 | Keep validation, classification precedence, aggregation, persistence, export, deletion, and evaluation deterministic | Exact financial results and reproducible acceptance must not depend on model output | CrewAI agents receive bounded tasks; aggregation uses deterministic functions only; PRD P0.2-P0.7, P0.10 |
-| AD-04 | Use CrewAI sequentially for classification, analysis coordination, insight writing, and evaluation | Matches the selected runtime and separates responsibilities | Typed outputs, low iteration limits, no persistent agent memory; PRD Runtime & Agent Specifications |
+| AD-04 | Use CrewAI sequentially only for ambiguous classification fallback and insight writing | Uses the selected runtime only where model reasoning is needed | process=sequential, memory=false, allow_delegation=false; classifier max_iter=1, insight max_iter<=2; typed task outputs; PRD Runtime & Agent Specifications |
 | AD-05 | Use OpenAI through a provider abstraction for optional classification and insight generation | Keeps provider choice configurable and allows deterministic fallback | Credentials remain server-side; provider calls are bounded and measured; PRD P0.4, P0.8 |
 | AD-06 | Run the app/API locally and do not expose an unauthenticated hosted service | The MVP has one shared workspace and no identity or authorization boundary | Synthetic data only; Cloud Firestore remains backend-only; future hosting requires route-level access control; PRD P0.1, Security & Compliance |
-| AD-07 | Never send raw merchant/payee values or reversible mappings to an LLM provider | Minimize disclosure while still supporting useful merchant-aware insights | Build a separate allow-listed alias-safe projection; this is stricter than the optional less-restrictive PRD demo mode, which is not implemented |
+| AD-07 | Never send raw merchant/payee values, original descriptions, or reversible mappings to an LLM provider | Minimize disclosure while still supporting useful merchant-aware insights | Always build a separate allow-listed alias-safe projection; no raw-value opt-in or server gate exists |
 
 ### Architecture Views
 
@@ -106,7 +106,7 @@ flowchart LR
   SVC --> DOM[Domain rules and deterministic calculations]
   SVC --> AG[Typed CrewAI tasks]
   SVC --> REPO[Repository interfaces]
-  REPO --> FS[Cloud Firestore]
+  REPO --> FS[Firestore Emulator - Week 3]
   AG --> LLM[OpenAI provider abstraction]
 ```
 
@@ -116,7 +116,7 @@ flowchart LR
 | FastAPI routes | HTTP validation, request IDs, response envelope | Thin transport layer |
 | Application services | Coordinate use cases and transactions | Own workflow decisions, not persistence implementation |
 | Domain rules | Validate expense/category behavior and calculate exact summaries | Deterministic and independently testable |
-| CrewAI tasks | Categorization fallback, insight narration, evaluation coordination | Typed, bounded inputs/outputs; no authority over money arithmetic |
+| CrewAI tasks | Unresolved categorization fallback and insight narration only | Typed, bounded inputs/outputs; no aggregation, evaluation, or persistence tools |
 | Repository interfaces | Read/write domain records | Isolate Firestore-specific code |
 | Provider abstraction | Call configured LLM and report provider failures/usage | Server-side secrets; deterministic fallback on failure |
 
@@ -134,14 +134,15 @@ sequenceDiagram
   participant Svc as Application services
   participant Crew as CrewAI tasks
   participant Repo as Repositories
-  participant DB as Cloud Firestore
+  participant DB as Firestore Emulator
   participant LLM as OpenAI
   User->>UI: Import or enter expense
   UI->>API: Validated request
   API->>Svc: Execute use case
   Svc->>Repo: Load taxonomy/history
   Repo->>DB: Read household-scoped records
-  Svc->>Crew: Optional typed classification/insight task
+  Svc->>Svc: Apply classification precedence; compute exact summaries
+  Svc->>Crew: Ambiguous classification fallback or insight from summary
   Crew->>LLM: Bounded prompt when required
   LLM-->>Crew: Structured candidate output
   Crew-->>Svc: Schema-validated result
@@ -155,7 +156,7 @@ sequenceDiagram
 | Element | Runtime behavior | Failure behavior |
 | --- | --- | --- |
 | API request | Validate, assign request ID, invoke one application use case | Return field-specific errors; do not partially accept structurally invalid files |
-| Classification task | Apply precedence; call LLM only for unresolved ambiguity | Use `outros` and flag review if no decisive fallback exists |
+| Classification service / task | Python service applies precedence; task calls LLM only for unresolved ambiguity | Use `outros` and flag review if no valid fallback exists |
 | Aggregation | Invoke deterministic aggregation functions | Return service error; never substitute LLM arithmetic |
 | Insight task | Use precomputed summaries and alias-safe context | Timeout/provider/schema failure yields deterministic fallback |
 | Repository operation | Read/write records scoped to the demo household | Return a structured storage error; do not report unpersisted writes as successful |
@@ -172,17 +173,17 @@ flowchart TB
     Browser[Browser]
     Vite[React/Vite at 127.0.0.1]
     API[FastAPI at 127.0.0.1]
-    ADC[Application Default Credentials]
+    Emulator[Firestore Emulator]
     Browser --> Vite
     Vite --> API
-    API --> ADC
+    API --> Emulator
   end
-  ADC --> Firestore[Firebase Cloud Firestore free-tier project]
+  API -. after emulator gate and security review .-> Firestore[Optional Cloud Firestore via ADC/IAM]
   API -. optional bounded request .-> OpenAI[OpenAI API]
   subgraph CI[CI / test environment]
     Tests[Integration tests]
-    Emulator[Firestore Emulator]
-    Tests --> Emulator
+    TestEmulator[Isolated Firestore Emulator]
+    Tests --> TestEmulator
   end
 ```
 
@@ -190,11 +191,11 @@ flowchart TB
 | --- | --- | --- |
 | Browser and Vite UI | Operator machine; loopback | No Firebase SDK credentials or direct Firestore access |
 | FastAPI | Operator machine; loopback | No public/LAN bind; synthetic demo data only |
-| Cloud Firestore | Firebase project, free-tier usage | Backend identity only; client rules deny direct access; IAM grants least privilege |
-| OpenAI API | External provider, optional | Server-side key; alias-safe, bounded prompts by default |
-| Firestore Emulator | CI/local integration tests | Isolated test data; never the production runtime store |
+| Cloud Firestore | Optional later Firebase project, free-tier usage | Only after emulator persistence/export/deletion gate and security review; backend ADC identity with least-privilege IAM; client rules deny direct access |
+| OpenAI API | External provider, optional | Server-side key; only allow-listed alias-safe, bounded prompts |
+| Firestore Emulator | Week 3 local runtime and isolated CI integration tests | Loopback only; synthetic data; no cloud credentials required |
 
-**Rationale / analysis**: This preserves the PRD's Cloud Firestore choice without exposing an unauthenticated API publicly. The backend Admin SDK is governed by Google Cloud IAM and bypasses Firestore Security Rules; therefore, least-privilege identity permissions are the backend access control, while Security Rules deny browser/client access. Local loopback limits network exposure but is not a user-identity boundary, so only synthetic demo data is allowed. Hosted deployment is deferred until every route has authentication and authorization.
+**Rationale / analysis**: Week 3 needs no cloud project or ADC: implement and test persistence, export, and deletion against the local emulator first. An in-memory adapter may unblock the first flow but does not replace the emulator acceptance gate. For a later cloud connection, the backend Admin SDK is governed by Google Cloud IAM and bypasses Firestore Security Rules; least-privilege IAM constrains backend access, while Security Rules deny browser/client access. Loopback is not a user-identity boundary, so synthetic data alone does not justify skipping the cloud security review. Hosted deployment remains deferred until every route has authentication and authorization.
 
 #### Data View
 
@@ -228,12 +229,12 @@ flowchart TB
 
 | ID | Risk | Impact | Mitigation / owner |
 | --- | --- | --- | --- |
-| AR-01 | Local API has no user authentication while using cloud Firestore | Anyone able to reach the local API can read, change, export, or delete demo data | Bind only to loopback, use synthetic data, do not host; project manager verifies launch configuration |
-| AR-02 | ADC/IAM is broader than required or misconfigured | Cloud data exposure or destructive access | Use a dedicated least-privilege identity where possible, keep credentials outside the repo, verify IAM and client-deny rules; DevOps/security review |
+| AR-01 | Local API has no user authentication if later connected to cloud Firestore | Anyone able to reach the local API can read, change, export, or delete demo data | Week 3 uses emulator/in-memory only; bind to loopback, use synthetic data, do not host; require emulator gate and security review before cloud connection |
+| AR-02 | Later ADC/IAM is broader than required or misconfigured | Cloud data exposure or destructive access | No ADC needed in Week 3; later use a dedicated least-privilege identity, keep credentials outside the repo, verify IAM and client-deny rules; DevOps/security review |
 | AR-03 | Firestore free-tier usage is exceeded | Unexpected cost or service interruption | Track reads/writes/storage and provider usage; set a budget threshold after operator approval; operator owns quota review |
 | AR-04 | Classifier errors undermine trust | Incorrect summaries and insights | User correction, review threshold, explainable decisions, deterministic golden evaluation; QA owns acceptance |
 | AR-05 | LLM output is unsafe, ungrounded, or exposes merchant data | User harm or sensitive-data disclosure | Allow-listed alias-safe projection only, schema/grounding/safety checks, deterministic fallback; backend/security own controls |
-| AR-06 | Emulator behavior differs from Cloud Firestore configuration | Integration tests pass while runtime permissions/configuration fail | Keep emulator tests and add a documented cloud-project smoke check using synthetic data before demo; DevOps owns setup |
+| AR-06 | Emulator behavior differs from later Cloud Firestore configuration | Integration tests pass while cloud permissions/configuration fail | Keep emulator tests; only if cloud mode is adopted, require a documented cloud-project smoke check with synthetic data before a cloud-backed demo; DevOps owns setup |
 
 ### PRD Traceability
 
@@ -255,14 +256,14 @@ The PRD's P0 feature sections contain the available user-story statements and ar
 
 ### Agent Architecture Requirements
 
-The MVP uses four specialized CrewAI agents plus deterministic services. Ingestion remains service-led because predictable validation matters more than natural-language reasoning.
+The MVP uses exactly two specialized CrewAI agents. Ingestion, classification precedence, aggregation, and evaluation remain deterministic Python services outside the Crew. Services decide whether to invoke either task; classification is not a prerequisite for generating insights from already classified expenses.
 
 | Agent | Role | Goal | Inputs | Outputs | Tool Access |
 | --- | --- | --- | --- | --- | --- |
-| `categorization_agent` | Expense classification specialist | Assign one active leaf category, confidence, reason, decision source, and review flag | Normalized expense, optional validated user category, taxonomy, keyword rules, global frequencies, household correction history | `ClassificationDecision` | Category taxonomy, keyword map, correction repository, optional LLM classifier fallback |
-| `aggregation_agent` | Monthly spending analyst | Prepare exact summaries for dashboard and insights | Expenses, categories, selected month, prior-month data | Monthly totals, breakdowns, source groups, recurrence summary | Expense repository, aggregation functions, recurrence detector |
-| `insight_agent` | Portuguese educational insight writer | Generate neutral pt-BR insights from structured summaries | Deterministic monthly summary, alias-safe merchant context, safety policy | Insight cards with source references and safety status | OpenAI provider abstraction, prompt templates, safety validator |
-| `evaluation_agent` | Categorization evaluator | Score classifier against golden dataset | Golden dataset, classifier configuration | Accuracy report, confusion details, pass/fail result | Golden dataset loader, classifier runner, report generator |
+| `categorization_agent` | Ambiguous expense classification specialist | Propose one active leaf category only after deterministic precedence is exhausted | Allow-listed alias-safe context and active-leaf taxonomy supplied by the service | `ClassificationDecision` | Configured LLM only; no repository, arithmetic, or evaluation tools |
+| `insight_agent` | Portuguese educational insight writer | Explain a precomputed summary without changing its numbers | Deterministic monthly summary, opaque source-group tokens, allow-listed alias-safe context, safety policy | `InsightCard` | Configured LLM only; no repository, arithmetic, or evaluation tools |
+
+The Python aggregation service reads expenses and calculates exact totals, breakdowns, comparisons, source groups, and recurrence summaries. The Python evaluation service loads the golden set, runs the deterministic classifier with LLM disabled, and computes exact-label counts, confusion details, and pass/fail. Neither is registered as a CrewAI agent or task.
 
 ### Task / Turn Orchestration
 
@@ -272,10 +273,10 @@ Primary expense flow:
 2. Ingestion service validates schema, date, BRL amount, payment method (`dinheiro`, `debito`, or `credito`), and recurrence (`sim`/`nao`, separate from payment method).
 3. If `categoria` is non-empty, ingestion resolves its trimmed, case- and accent-insensitive label against exactly one active leaf in `CategoryRepository`. Unknown, ambiguous, or parent-category values reject only that row with a field-specific error; they are never auto-created, mapped to `outros`, or sent to classification. Blank or omitted categories continue to classification.
 4. Normalization service creates canonical expense records associated with the single demo household.
-5. Categorization service invokes `categorization_agent` only when no valid user-supplied category exists.
+5. Categorization service applies user-category, exact-correction, deterministic-rule, and frequency precedence. Only unresolved ambiguity may invoke `categorization_agent`, using the allow-listed projection; unavailable or invalid output yields `outros` with review required.
 6. Repository layer persists expenses, decisions, import metadata, and correction history.
-7. Aggregation service invokes `aggregation_agent` only as a coordinator for deterministic aggregation functions; no LLM-generated arithmetic is accepted for dashboard or insight input summaries.
-8. Insight service invokes `insight_agent` only with structured summaries and alias-safe merchant context unless the user opts in for that generation and the server-side demo gate allows it.
+7. The Python aggregation service computes exact summaries directly, outside the Crew; no LLM-generated arithmetic is accepted.
+8. Insight service invokes `insight_agent` with precomputed summaries and the unconditional allow-listed alias-safe projection. No raw-value opt-in or server gate exists. Ungrounded, unsafe, invalid, or unavailable output yields deterministic fallback summaries.
 9. Frontend renders dashboard, review list, insights, import report, and export/delete controls.
 
 Expected behavior:
@@ -286,15 +287,46 @@ Expected behavior:
 - Classification precedence is: valid user-supplied leaf category; exact household correction for normalized merchant and description; most-specific unambiguous deterministic rule; household correction frequency with global frequency only as a tie-breaker; optional LLM fallback for unresolved ambiguity. If no result is available and LLM fallback is unavailable, assign `outros` and flag for review.
 - User corrections update expenses, create correction records, and influence future household-specific classification.
 - Insight generation timeout or provider failure returns deterministic fallback summaries.
-- Golden-dataset evaluation runs without LLM fallback by default unless explicitly configured for a separate experiment.
+- Golden-dataset acceptance evaluation runs entirely outside the Crew with LLM fallback disabled and zero provider calls. Any separate LLM experiment is not used for the deterministic acceptance report.
 
 ### Runtime-Conditional Configuration: crewai
 
-- Crew composition: `categorization_agent`, `aggregation_agent`, `insight_agent`, and `evaluation_agent`.
-- Process type: sequential for MVP, with explicit task context chaining from normalized data to classification, aggregation, and insight generation.
-- Agent/task config: define YAML-backed agent roles, goals, tools, expected outputs, and guardrails during Build.
-- Iteration limits: keep `max_iter` low for deterministic-like tasks; recommended default is 1-3 iterations depending on task complexity.
-- Memory policy: no long-lived CrewAI memory in MVP. Persist learning explicitly through domain repositories such as household correction history and merchant context.
+- Crew composition: only `categorization_agent` and `insight_agent`; services select the required task, not an unconditional two-agent pipeline.
+- Crew controls: `process: sequential` (bound to `Process.sequential`) and `memory: false`. Each agent has `allow_delegation: false`; categorization has `max_iter: 1`, insight has `max_iter: 2` at most. Persist learning only through domain repositories.
+- Agent/task declarations must reside in `config/agents.yaml` and `config/tasks.yaml`. The following contract is fixed now; Build implements it without adding aggregation/evaluation tasks:
+
+```yaml
+# config/agents.yaml
+categorization_agent:
+  role: Ambiguous expense classifier
+  goal: Select one supplied active leaf using only the safe context
+  backstory: Resolve ambiguity without inventing categories or source data
+  allow_delegation: false
+  max_iter: 1
+insight_agent:
+  role: Portuguese educational insight writer
+  goal: Explain the supplied summary with valid sources and no financial advice
+  backstory: Write neutral pt-BR observations without recalculating figures
+  allow_delegation: false
+  max_iter: 2
+```
+
+```yaml
+# config/tasks.yaml
+classification_task:
+  agent: categorization_agent
+  description: Resolve the ambiguity using {safe_context} and {active_leaf_taxonomy}
+  expected_output: ClassificationDecision containing category_id, confidence, reason, source, and review_required
+insight_task:
+  agent: insight_agent
+  description: Explain {monthly_summary} using {safe_context} and {source_groups}; no investment, credit, tax, affordability, or prescriptive advice
+  expected_output: InsightCard containing title, text, and source_refs grounded in the supplied source groups
+```
+
+- Bind `classification_task.output_pydantic=ClassificationDecision` and `insight_task.output_pydantic=InsightCard` in the Python task factory; these are model classes, not YAML string values. Bind the configured provider/model in Python. Use `Task.context` only for actual selected-task dependencies; never run classification merely to enable an insight.
+- `ClassificationDecision` requires `category_id` (string resolving to a supplied active leaf), `confidence` (number in [0, 1]), `reason` (non-empty string), `source` (literal `llm_fallback` for this task), and `review_required` (boolean). The service enforces review below 0.70 and validates category membership before persistence. Deterministic decisions use the same domain schema with their own source values outside the Crew.
+- `InsightCard` requires non-empty `title` and `text` in pt-BR and a non-empty `source_refs` list of opaque tokens from the supplied source groups. Reject extra schema fields; raw values, reversible mappings, and internal record IDs are never supplied to the model. The backend alone resolves these tokens to trusted UI source references.
+- Pydantic validation is necessary but not sufficient: services verify source membership, grounding against precomputed values, and the safety policy before display. Missing/invented sources or investment, credit, tax, affordability, or prescriptive advice reject the card and trigger deterministic fallback; the model cannot self-certify safety.
 - Error handling: retry transient provider failures once where appropriate; otherwise return structured errors and deterministic fallbacks.
 - Budget controls: limit insight prompts to aggregated summaries, source group identifiers, and alias-safe merchant context; do not pass raw full expense histories to the LLM.
 
@@ -434,13 +466,13 @@ Environment variables only; no secret values in code or artifacts:
 
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_EMULATOR_HOST` (integration tests only)
+- `FIREBASE_PROJECT_ID` (local emulator project identifier in Week 3; actual cloud project only after the emulator gate)
+- `FIRESTORE_EMULATOR_HOST` (standard SDK variable; required for emulator-backed local runtime and integration tests)
 - `APP_ENV`
 
 Provider payloads may include only the fictitious merchant alias, business-context description, category hints, and aggregate recurrence behavior. Raw merchant/payee values, original descriptions, and reversible alias mappings are never sent to an LLM provider. The backend may use its mapping to restore source labels only in the trusted response to the local user.
 
-The local/demo frontend and API must bind to host loopback (`127.0.0.1`) and must not be exposed on a public or LAN interface. The backend connects to the configured Cloud Firestore project using Application Default Credentials; downloaded service-account key files must not be committed or placed in the repository. Firestore access is server-side only, and client access must be denied by Firestore security rules. The Admin SDK bypasses Firestore Security Rules, so backend access must be constrained by least-privilege IAM. Use synthetic demo data only; the unauthenticated MVP is not suitable for real household financial data.
+The local/demo frontend, API, and emulator must bind to loopback (`127.0.0.1`) and must not be exposed on a public or LAN interface. Week 3 uses emulator/in-memory repositories without ADC. Emulator mode must fail startup if `FIRESTORE_EMULATOR_HOST` is absent rather than silently connect to the cloud. After emulator persistence/export/deletion tests and security review pass, an explicit cloud mode may use ADC; downloaded service-account key files must never be placed in the repository. Cloud access is backend-only, with client-deny rules and least-privilege IAM because the Admin SDK bypasses Firestore Security Rules. Use synthetic demo data only; the unauthenticated MVP is not suitable for real household financial data.
 
 ## 5. DevOps & Deployment Architecture
 
@@ -459,7 +491,7 @@ Minimum CI checks:
 
 ### Hosting
 
-The React/Vite frontend and FastAPI backend run locally with host ports bound to `127.0.0.1`; the backend connects to the Firebase Cloud Firestore free-tier project using Application Default Credentials. Document the local run command and credential setup. Unit tests use in-memory repositories, while integration tests run against the Firestore Emulator. Keep Firestore access out of the browser, apply server-only access rules, and monitor free-tier usage. Do not deploy a hosted app or expose the API while authentication and authorization are disabled. Use synthetic demo data only until production access controls are implemented; any future hosted deployment must enforce access controls for every route, including export and deletion.
+The React/Vite frontend and FastAPI backend run locally on `127.0.0.1`. Week 3 uses the Firestore Emulator for local persistence and integration tests; in-memory repositories support unit tests and the initial flow. Document a credential-free local setup. Require successful emulator tests for persistence, CSV/JSON export, and deletion before introducing a Firebase free-tier cloud project and ADC. A later explicit cloud mode requires least-privilege IAM, client-deny rules, security review, and quota monitoring. Do not host or expose the API while authentication and authorization are disabled. Use synthetic data only; future hosting must enforce access controls for every route, including export and deletion.
 
 Production-grade hosting, multi-region deployment, managed background jobs, backups, and advanced monitoring are deferred.
 
@@ -514,8 +546,8 @@ Logs must avoid plaintext sensitive descriptions and raw merchant/payee names wh
 
 ### Evaluation
 
-1. `evaluation_agent` loads 30-50 anonymized golden records with expected canonical leaf-category IDs.
-2. Classifier predicts categories with LLM fallback disabled or mocked by default.
+1. The Python evaluation service, outside the Crew, loads 30-50 anonymized golden records with expected canonical leaf-category IDs.
+2. The deterministic classifier predicts categories with LLM fallback disabled; no Crew kickoff or provider call is allowed in acceptance evaluation. Provider mocks belong to separate fallback contract tests, not the golden acceptance run.
 3. Evaluator counts exact top-1 canonical leaf-category matches; accuracy is `correct / total`.
 4. Report includes total records, correct/incorrect counts, accuracy percentage, category-level confusion details, and pass/fail at 70%.
 
@@ -525,7 +557,7 @@ MVP performance targets from the PRD:
 
 - Import 50 demo expenses in under 5 seconds on a typical local development machine.
 - Render monthly dashboard in under 2 seconds after data is available.
-- Classify the 30-50 row golden dataset in under 30 seconds when LLM fallback is disabled or mocked.
+- Classify the 30-50 row golden dataset in under 30 seconds with LLM fallback disabled.
 - Generate monthly insights in under 20 seconds when OpenAI is configured and available.
 - Return deterministic fallback summaries when insight generation fails or exceeds timeout.
 
@@ -538,7 +570,7 @@ Scalability assumptions:
 Runtime cost controls:
 
 - LLM calls are limited to monthly insights and optional ambiguous classification fallback.
-- Default evaluation should not call the LLM.
+- Acceptance evaluation must make zero LLM/provider calls and run outside the Crew.
 - Prompt inputs use summaries, aliases, and bounded source groups rather than raw full ledgers.
 - Store provider metadata with `InsightRun` for later cost and safety analysis.
 
@@ -576,22 +608,24 @@ Before production shared household use, the project must add:
 
 - Unit tests for CSV parsing, date parsing, BRL normalization, payment/recurrence validation, category label resolution, parent/leaf constraints, classifier precedence, the 0.70 review threshold, correction history lookup, aggregation arithmetic, export formatting, deletion behavior, and insight safety validators.
 - Integration tests for partial CSV import with unknown/parent/ambiguous category values, valid category import, manual expense to dashboard, category correction to recalculated totals, allow-list projection and unconditional raw-value/mapping exclusion, insight fallback, and export/delete flows.
-- Evaluation tests for golden-dataset categorization accuracy.
-- Contract tests for API request/response envelopes and agent output schemas.
+- Evaluation tests for golden-dataset categorization accuracy, identical repeated reports, and zero Crew/provider calls with LLM disabled.
+- Contract tests for API envelopes, strict `ClassificationDecision`/`InsightCard` outputs, active-leaf checks, source membership, and deterministic fallback on missing sources or unsafe advice.
+- Configuration tests assert exactly two agents, sequential process, disabled memory/delegation, classifier max_iter=1, and insight max_iter<=2.
+- Emulator acceptance tests prove persistence across repository recreation, CSV/JSON export, and deletion of all household-owned records while retaining the demo household; no cloud project or ADC is needed. Emulator-mode startup must fail when its host is missing.
 - Security checks using Gitleaks for committed secrets, `pip-audit` and `npm audit` for dependencies, plus tests for unsafe logging patterns and LLM prompt data minimization.
 
 ### Evaluation Criteria
 
 | ID | Dimension | Metric | Threshold | Grading Method | Source |
 |----|-----------|--------|-----------|-----------------|--------|
-| EC-001 | Accuracy | Exact top-1 canonical leaf-category accuracy (`correct / total`) on golden dataset with LLM fallback disabled or mocked | >= 70% | Code-based evaluator; report numerator, denominator, and category-level confusion | PRD P0.4.6, P0.10 |
+| EC-001 | Accuracy | Exact top-1 canonical leaf-category accuracy (`correct / total`) on golden dataset with LLM fallback disabled | >= 70% | Python evaluator outside Crew; report counts and confusion; assert zero Crew/provider calls | PRD P0.4.6, P0.10 |
 | EC-002 | Import Reliability | Valid rows imported from sample CSV | >= 95% valid rows imported; invalid rows reported without blocking valid rows | Integration test with sample CSV | PRD P0.2, Product Metrics |
 | EC-003 | Dashboard Correctness | Deterministic arithmetic for totals, percentages, payment-method breakdowns, and month-over-month comparison | 100% expected results in unit tests | Code-based unit tests | PRD P0.7, Technical Metrics |
 | EC-004 | Insight Grounding | Generated or fallback insights include supporting category, date range, or source-expense reference | 100% of accepted insights | Schema validation plus QA review | PRD P0.8, Product Metrics |
 | EC-005 | Insight Safety | Accepted insights avoid investment, tax, credit, affordability, and prescriptive financial advice | 0 accepted unsafe insights in QA safety checks | Rule-based scan plus human QA review | PRD P0.8, Safety Requirements |
 | EC-006 | Latency | Dashboard render after data is available | < 2 seconds | Integration or browser smoke test | PRD Performance Requirements |
 | EC-007 | Latency | 50-row import completion | < 5 seconds locally | Integration timing test | PRD Performance Requirements |
-| EC-008 | Latency | Golden dataset classification with LLM disabled/mocked | < 30 seconds | Evaluation command timing | PRD Performance Requirements |
+| EC-008 | Latency | Golden dataset classification with LLM disabled | < 30 seconds | Evaluation command timing | PRD Performance Requirements |
 | EC-009 | Latency | Monthly insight generation with provider available | < 20 seconds | Integration timing test with configured provider or mocked equivalent | PRD Performance Requirements |
 | EC-010 | Security | Committed secrets | 0 committed secrets detected | Gitleaks CI scan | PRD Security, `aamad.config.yml` |
 | EC-011 | Privacy | Raw merchant/payee values, original descriptions, or reversible alias mappings in any LLM prompt | 0 for every request | Prompt payload tests assert the allow-list schema and absence of raw values/mappings | SAD privacy decision; PRD P0.8.6, Security Requirements |
@@ -625,12 +659,12 @@ Post-demo iteration priorities:
 ## Implementation Guidance for AI Development Agents
 
 1. `@project.mgr` should scaffold a Python backend aligned with CrewAI, a responsive web frontend, shared schema definitions, test setup, and environment documentation.
-2. `@backend.eng` should implement deterministic services before adding LLM or agent fallback behavior.
+2. `@backend.eng` should implement the Week 3 slice with deterministic services and emulator/in-memory repositories before adding LLM fallback. Only categorization fallback and insight writing enter CrewAI, with the fixed contracts in section 2. Prove emulator persistence, CSV/JSON export, and deletion before cloud project/ADC setup.
 3. `@frontend.eng` should build the PRD-specified product screens in pt-BR and consume mocked API contracts until integration.
 4. `@integration.eng` should wire frontend flows to backend services and verify import-to-dashboard-to-insight behavior.
 5. `@qa.eng` should map tests to acceptance criteria and implement the golden-dataset evaluation report.
 6. `@security.eng` should assess secrets, logs, deletion/export behavior, LLM prompt minimization, and future production risks.
-7. `@devops.eng` should document local run steps, CI checks, deployment assumptions, and required environment variables.
+7. `@devops.eng` should document credential-free emulator run steps and CI checks first. Cloud project/ADC setup follows the emulator gate and security review, never as a Week 3 prerequisite.
 
 ## Architecture Validation Checklist
 
@@ -647,7 +681,7 @@ Post-demo iteration priorities:
 ## Architecture Decisions (MVP)
 
 - **Frameworks**: FastAPI backend; React + TypeScript + Vite frontend.
-- **Persistence**: Firebase Cloud Firestore free-tier project for the MVP runtime; Firestore Emulator for integration tests; in-memory repositories for unit tests. The app remains local-only until authentication and authorization are implemented.
+- **Persistence**: Week 3 runtime and integration tests use the Firestore Emulator; initial development and unit tests may use in-memory repositories. Optional Cloud Firestore free-tier project and ADC follow successful emulator persistence/export/deletion tests and security review. The app remains local-only until authentication and authorization are implemented.
 - **Traceability**: Use PRD P0 feature/story IDs and AC IDs in this SAD. Generate separate user-story artifacts before Build under `project-context/1.define/user-stories/` and preserve the existing IDs.
 - **CI security**: Gitleaks, `pip-audit`, and `npm audit`, with dependency lockfiles committed.
 
@@ -658,12 +692,13 @@ Post-demo iteration priorities:
 - `.cursor/templates/sad-template.md`
 - `.github/agents/system-arch.agent.md`
 - `aamad.config.yml`
+- Professor review supplied by the operator on 2026-10-06: two model-backed agents only, fixed CrewAI contracts, unconditional allow-list privacy, and emulator-first Week 3.
 
 ## Assumptions
 
 - User stories will be generated from the PRD before Build; this SAD maps architecture decisions to PRD requirements and the resulting stories.
 - The selected frameworks are React + TypeScript + Vite for the frontend and FastAPI for the Python backend. Build may select compatible library versions and the Firestore SDK, but should not change these framework choices without revising this SAD.
-- The frontend and backend run locally and bind to host loopback; the backend uses Application Default Credentials to access Cloud Firestore. The emulator is reserved for integration tests. No public app deployment is configured while authentication and authorization are disabled, and only synthetic demo data is used.
+- The frontend, backend, and emulator run locally on loopback. Week 3 requires no cloud project or ADC; cloud connection is deferred until the emulator persistence/export/deletion gate and security review pass. No public app deployment is configured while authentication and authorization are disabled, and only synthetic demo data is used.
 - The operator has not supplied an LLM/provider cost threshold. EC-013 is observational and is not a release gate until the operator or Product Manager approves a budget.
 - Non-streaming LLM insight generation is sufficient for MVP usability and simpler validation.
 - Raw merchant/payee values and reversible mappings never leave backend services. Provider calls use only the allow-listed alias-safe projection; the backend may restore source labels only in the trusted local-user response.
@@ -697,3 +732,11 @@ Post-demo iteration priorities:
 - Persona id: system-arch
 - Action: raw-merchant-boundary-update
 - Artifact: made raw merchant/payee values and reversible mappings unconditionally backend-only; limited provider payloads to an allow-listed alias-safe projection
+- Timestamp: 2026-10-06
+- Persona id: system-arch
+- Action: professor-review-alignment
+- Artifact: restricted Crew to ambiguous classification and insight writing; fixed YAML/Pydantic and execution contracts; removed raw-value opt-in; made Week 3 emulator-first with persistence/export/deletion gate before cloud/ADC
+- AAMAD_TARGET_RUNTIME: crewai (configured target)
+- Tool usage: targeted document reads/searches and apply_patch; focused consistency checks and aamad validation when available
+- Model/temperature/max_tokens: no application LLM execution; model identity and generation controls not exposed by the editor session
+- Prompt Trace: omitted; documentation-only revision with no financial records, secrets, or provider calls
