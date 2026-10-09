@@ -23,9 +23,10 @@ describe('BRL and input validation (AC-P0.3.1/.2/.3/.5)', () => {
 })
 
 describe('stub run service', () => {
-    it('returns running then done, snapshots inputs, and makes polling idempotent', async () => {
+    it('returns fixed running/done payloads and isolated result copies', async () => {
         vi.useFakeTimers()
         const service = createRunService()
+        await expect(service.getRunStatus('demo-run')).rejects.toThrow()
         const expense = { ...input }
         const { runId } = await service.startRun(expense)
         expense.amountCents = 99
@@ -41,19 +42,16 @@ describe('stub run service', () => {
         await expect(service.getRunStatus('missing')).rejects.toThrow()
         await expect(service.startRun({ ...input, amountCents: 0 })).rejects.toThrow()
     })
-    it('aggregates completed expenses by month/category/payment/recurrence using cents', async () => {
+    it('returns identical mock payloads regardless of valid inputs or earlier runs', async () => {
         const service = createRunService(0)
         const first = await service.startRun({ ...input, amountCents: 10 })
-        await service.getRunStatus(first.runId)
-        const second = await service.startRun({ ...input, category: 'Moradia', payment: 'credito', amountCents: 20, recurring: true })
-        expect(second.runId).not.toBe(first.runId)
-        const status = await service.getRunStatus(second.runId)
-        expect(status.status === 'done' && status.result).toMatchObject({ totalCents: 30, count: 2, recurringCents: 20, categories: [{ name: 'Alimentacao', cents: 10 }, { name: 'Moradia', cents: 20 }], payments: [{ name: 'debito', cents: 10 }, { name: 'credito', cents: 20 }] })
-        const nextMonth = await service.startRun({ ...input, date: '2026-11-01' })
-        const next = await service.getRunStatus(nextMonth.runId)
-        expect(next.status === 'done' && next.result.count).toBe(1)
-        const original = await service.getRunStatus(first.runId)
-        expect(original.status === 'done' && original.result.totalCents).toBe(10)
+        const firstStatus = await service.getRunStatus(first.runId)
+        const second = await service.startRun({ ...input, date: '2026-11-01', category: 'Moradia', payment: 'credito', amountCents: 20, recurring: true })
+        expect(second).toEqual(first)
+        expect(second).toEqual({ runId: 'demo-run' })
+        expect(await service.getRunStatus(second.runId)).toEqual(firstStatus)
+        expect(firstStatus.status === 'done' && firstStatus.result).toMatchObject({ totalCents: 12345, count: 1, recurringCents: 0, month: '2026-10' })
+        await expect(service.getRunStatus('missing')).rejects.toThrow()
     })
 })
 
@@ -63,19 +61,23 @@ describe('workflow FSM', () => {
         const { runId } = await service.startRun(input)
         const status = await service.getRunStatus(runId)
         if (status.status !== 'done') throw new Error('Expected completion')
-        const completed = { type: 'completed', runId, result: status.result } as const
+        const completed = { type: 'completed', runId, result: status.result, input } as const
         expect(workflowReducer(initialState, completed)).toBe(initialState)
         const running = workflowReducer(initialState, { type: 'started', runId })
         expect(running.phase).toBe('running')
         expect(workflowReducer(running, { type: 'started', runId: 'duplicate' })).toBe(running)
         expect(workflowReducer(running, { type: 'reset' })).toBe(running)
-        expect(workflowReducer(running, { type: 'completed', runId: 'stale', result: status.result })).toBe(running)
+        expect(workflowReducer(running, { ...completed, runId: 'stale' })).toBe(running)
         expect(workflowReducer(running, { type: 'failed', runId: 'stale', message: 'error' })).toBe(running)
         const done = workflowReducer(running, completed)
         expect(done.phase).toBe('done')
         expect(done.history).toHaveLength(1)
+        expect(done.history[0].submittedInput).toEqual(input)
+        expect(done.history[0].requestId).toBe(runId)
         expect(workflowReducer(done, completed)).toBe(done)
-        expect(workflowReducer(done, { type: 'reset' }).phase).toBe('idle')
+        const reset = workflowReducer(done, { type: 'reset' })
+        expect(reset.phase).toBe('idle')
+        expect(reset.history).toEqual(done.history)
         const retry = workflowReducer(done, { type: 'started', runId: 'next' })
         const failed = workflowReducer(retry, { type: 'failed', runId: 'next', message: 'Tente novamente.' })
         expect(failed).toMatchObject({ phase: 'idle', error: 'Tente novamente.' })

@@ -16,7 +16,15 @@ For this workspace session, Node was downloaded and checksum-verified in `/tmp/n
 
 ## Use
 
-Enter a fictitious expense date, description, BRL value (for example `123,45`), category, and payment method. Recurrence is optional. Select **Registrar e analisar**; the form locks during the simulated run and Results displays the monthly snapshot. Select a completed history row to revisit its result. Invalid inputs and run failures preserve the form for retry.
+Enter a fictitious expense date, description, BRL value (for example `123,45`), category, and payment method. Recurrence is optional. Select **Executar** (Run); the form and Reset lock while the status moves `idle -> running -> done`.
+
+The top banner shows **Crew: idle**, **Crew: running**, **Crew: done**, or **Crew: error**, with a gray, blue, green, or red indicator. The same status wording is used wherever status appears; buttons retain action labels except while running. `Atualizado em` shows the latest client update time, refreshed by Run/Retry, service responses, errors, and Reset. It is not the fixed mock completion timestamp and does not advance without a status update.
+
+Results always displays the same October 2026 mock payload (R$ 123,45), independent of the submitted fields. History records your submitted inputs separately, using distinct client IDs. Select a history row to revisit its fixed result.
+
+Use the arrow icon **Redefinir** (Reset) to restore form defaults, hide results, and clear errors back to `idle`; completed history is retained. Service errors show an inline message and **Tentar novamente** (Retry), which restores and resubmits the original failed inputs even if the form was edited afterward. Invalid inputs remain editable with Run available.
+
+Run and Reset are the only normal workflow controls; Retry appears only after errors. Streaming, tool-call details, costs, pause/cancel/retry-diff, advanced accessibility, and resilience are deferred until observability. There is no automatic retry or run timeout in this slice. Native labels, semantic headings, visible focus, and basic keyboard navigation are implemented.
 
 All expenses and results are in memory. Refresh clears the session. No bank, database, LLM, backend service, or browser storage is connected. This is an educational prototype, not financial advice or the complete PRD MVP.
 
@@ -49,3 +57,5 @@ The [functional spec](../project-context/2.build/frontend-funcional-spec.md) def
 ## Audit
 
 - 2026-10-09; frontend.eng; document-frontend-setup. Tools: apply_patch, npm tests/build/audit, browser verification. Runtime: crewai (not invoked). Model: GitHub Copilot; temperature/max_tokens not exposed. Prompt Trace omitted for this local synthetic prototype.
+- 2026-10-09; frontend.eng; sync-run-controls. Updated fixed mock behavior, Run/Reset/Retry, status text, and observability deferrals; no commit created.
+- 2026-10-09; frontend.eng; sync-status-banner. Documented the shared labels/colors, derived error display, and real client update timestamp; no commit created.

@@ -27,15 +27,16 @@ export type RunService = {
     startRun(input: ExpenseInput): Promise<{ runId: string }>
     getRunStatus(runId: string): Promise<RunStatus>
 }
+export type CompletedRun = RunResult & { requestId: string; submittedInput: ExpenseInput }
 export type WorkflowState = {
     phase: 'idle' | 'running' | 'done'
     runId: string | null
-    history: RunResult[]
+    history: CompletedRun[]
     error: string | null
 }
 export type WorkflowEvent =
     | { type: 'started'; runId: string }
-    | { type: 'completed'; runId: string; result: RunResult }
+    | { type: 'completed'; runId: string; result: RunResult; input: ExpenseInput }
     | { type: 'failed'; runId: string; message: string }
     | { type: 'reset' }
 
@@ -47,7 +48,7 @@ export function workflowReducer(state: WorkflowState, event: WorkflowEvent): Wor
             return state.phase === 'running' ? state : { ...state, phase: 'running', runId: event.runId, error: null }
         case 'completed':
             if (state.phase !== 'running' || state.runId !== event.runId) return state
-            return { phase: 'done', runId: null, error: null, history: [event.result, ...state.history] }
+            return { phase: 'done', runId: null, error: null, history: [{ ...event.result, requestId: event.runId, submittedInput: { ...event.input } }, ...state.history] }
         case 'failed':
             if (state.phase !== 'running' || state.runId !== event.runId) return state
             return { ...state, phase: 'idle', runId: null, error: event.message }

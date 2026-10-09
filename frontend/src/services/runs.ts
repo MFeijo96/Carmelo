@@ -1,35 +1,30 @@
-import { categories, payments, validateInput, type ExpenseInput, type RunResult, type RunService } from '../workflow'
+import { validateInput, type ExpenseInput, type RunResult, type RunService } from '../workflow'
+
+const mockResult: RunResult = {
+    runId: 'demo-run',
+    completedAt: '2026-10-09T12:00:00.000Z',
+    input: { date: '2026-10-09', description: 'Mercado demonstrativo', amountCents: 12345, category: 'Alimentacao', payment: 'debito', recurring: false },
+    month: '2026-10',
+    totalCents: 12345,
+    count: 1,
+    recurringCents: 0,
+    categories: [{ name: 'Alimentacao', cents: 12345 }],
+    payments: [{ name: 'debito', cents: 12345 }],
+}
 
 export function createRunService(latency = 1200): RunService {
-    const runs = new Map<string, { readyAt: number; result: RunResult; completed: boolean }>()
+    let readyAt: number | null = null
 
     return {
         async startRun(rawInput: ExpenseInput) {
-            const input = validateInput(rawInput)
-            const runId = crypto.randomUUID()
-            const month = input.date.slice(0, 7)
-            const entries = [...runs.values()]
-                .filter(run => run.completed && run.result.month === month)
-                .map(run => run.result.input)
-            entries.push(input)
-            const sum = (expenses: ExpenseInput[]) => expenses.reduce((total, expense) => total + expense.amountCents, 0)
-            const readyAt = Date.now() + latency
-            const result: RunResult = {
-                runId, input, month, completedAt: new Date(readyAt).toISOString(),
-                totalCents: sum(entries), count: entries.length,
-                recurringCents: sum(entries.filter(expense => expense.recurring)),
-                categories: categories.map(name => ({ name, cents: sum(entries.filter(expense => expense.category === name)) })).filter(item => item.cents > 0),
-                payments: (Object.keys(payments) as (keyof typeof payments)[]).map(name => ({ name, cents: sum(entries.filter(expense => expense.payment === name)) })).filter(item => item.cents > 0),
-            }
-            runs.set(runId, { readyAt, result, completed: false })
-            return { runId }
+            validateInput(rawInput)
+            readyAt = Date.now() + latency
+            return { runId: mockResult.runId }
         },
         async getRunStatus(runId: string) {
-            const run = runs.get(runId)
-            if (!run) throw new Error('Execucao nao encontrada. Tente novamente.')
-            if (Date.now() < run.readyAt) return { status: 'running' }
-            run.completed = true
-            return { status: 'done', result: structuredClone(run.result) }
+            if (runId !== mockResult.runId || readyAt === null) throw new Error('Execucao nao encontrada. Tente novamente.')
+            if (Date.now() < readyAt) return { status: 'running' }
+            return { status: 'done', result: structuredClone(mockResult) }
         },
     }
 }
