@@ -1,0 +1,245 @@
+{
+    "version": "home-financial-golden-v1",
+    "records": [
+        {
+            "date": "2026-10-01",
+            "description": "Compra de supermercado",
+            "amount_cents": 1045,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-10-02",
+            "description": "Compra em mercearia",
+            "amount_cents": 1290,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-10-03",
+            "description": "Compra no açougue",
+            "amount_cents": 2380,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-10-04",
+            "description": "Feira semanal",
+            "amount_cents": 1560,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-10-05",
+            "description": "Compras de mercado",
+            "amount_cents": 3845,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-10-06",
+            "description": "Almoço em restaurante",
+            "amount_cents": 4590,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-10-07",
+            "description": "Pedido de delivery",
+            "amount_cents": 3290,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-10-08",
+            "description": "Jantar na pizzaria",
+            "amount_cents": 6890,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-10-09",
+            "description": "Lanche na cafeteria",
+            "amount_cents": 1750,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-10-10",
+            "description": "Pagamento do aluguel",
+            "amount_cents": 180000,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-moradia"
+        },
+        {
+            "date": "2026-10-11",
+            "description": "Taxa de condomínio",
+            "amount_cents": 48500,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-moradia"
+        },
+        {
+            "date": "2026-10-12",
+            "description": "Prestação da casa",
+            "amount_cents": 142000,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-moradia"
+        },
+        {
+            "date": "2026-10-13",
+            "description": "Conta de luz",
+            "amount_cents": 18490,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-10-14",
+            "description": "Conta de água",
+            "amount_cents": 9560,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-10-15",
+            "description": "Internet residencial",
+            "amount_cents": 11990,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-10-16",
+            "description": "Gás de cozinha",
+            "amount_cents": 12500,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-10-17",
+            "description": "Combustível do carro",
+            "amount_cents": 25700,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-10-18",
+            "description": "Passagem de ônibus",
+            "amount_cents": 960,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-10-19",
+            "description": "Estacionamento",
+            "amount_cents": 2500,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-10-20",
+            "description": "Corrida de transporte",
+            "amount_cents": 3480,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-10-21",
+            "description": "Compra na farmácia",
+            "amount_cents": 2890,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-saude"
+        },
+        {
+            "date": "2026-10-22",
+            "description": "Remédio mensal",
+            "amount_cents": 7450,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-saude"
+        },
+        {
+            "date": "2026-10-23",
+            "description": "Consulta médica",
+            "amount_cents": 18000,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-saude"
+        },
+        {
+            "date": "2026-10-24",
+            "description": "Plano de saúde",
+            "amount_cents": 64500,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-saude"
+        },
+        {
+            "date": "2026-10-25",
+            "description": "Mensalidade escolar",
+            "amount_cents": 98500,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-educacao"
+        },
+        {
+            "date": "2026-10-26",
+            "description": "Material escolar",
+            "amount_cents": 4290,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-educacao"
+        },
+        {
+            "date": "2026-10-27",
+            "description": "Curso de inglês",
+            "amount_cents": 25500,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-educacao"
+        },
+        {
+            "date": "2026-10-28",
+            "description": "Assinatura de streaming",
+            "amount_cents": 3990,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-assinaturas"
+        },
+        {
+            "date": "2026-10-29",
+            "description": "Consulta no veterinário",
+            "amount_cents": 14500,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-pets"
+        },
+        {
+            "date": "2026-10-30",
+            "description": "IPTU anual",
+            "amount_cents": 35000,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-impostos-taxas"
+        }
+    ]
+}

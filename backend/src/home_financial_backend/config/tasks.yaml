@@ -1,0 +1,14 @@
+classification_task:
+  description: >-
+    Resolve the ambiguity using {safe_context} and {active_leaf_taxonomy}. Select only a supplied
+    active leaf category and return a reasoned decision. Do not infer or calculate financial totals.
+  expected_output: >-
+    ClassificationDecision with category_id, confidence from 0 to 1, reason, source set to
+    llm_fallback, and review_required.
+
+insight_task:
+  description: >-
+    Explain {monthly_summary} in pt-BR using {safe_context} and {source_groups}. Do not recalculate
+    numbers or provide investment, credit, tax, affordability, or prescriptive advice.
+  expected_output: >-
+    InsightCard with a non-empty title, pt-BR text, and source_refs grounded in supplied source groups.

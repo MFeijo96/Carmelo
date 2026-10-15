@@ -581,6 +581,255 @@ h4 {
     margin-top: 30px;
 }
 
+.workspace-tools {
+    margin-top: 34px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 24px 0;
+}
+
+.workspace-tools .section-heading {
+    margin-bottom: 16px;
+}
+
+.tool-tabs {
+    display: flex;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line);
+    gap: 4px;
+}
+
+.tool-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 13px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.tool-tabs button[aria-selected="true"] {
+    color: var(--green);
+    border-bottom-color: var(--green);
+    font-weight: 700;
+}
+
+.tool-panel {
+    min-height: 190px;
+    padding: 22px 0 8px;
+}
+
+.tool-content h3 {
+    margin-bottom: 18px;
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: 400;
+}
+
+.tool-form,
+.review-filters {
+    display: flex;
+    align-items: end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.tool-form {
+    margin-bottom: 16px;
+}
+
+.tool-form label,
+.review-filters label {
+    display: grid;
+    gap: 7px;
+    min-width: 160px;
+    flex: 1;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.tool-form input,
+.tool-form select,
+.review-filters input[type="month"],
+.review-filters select,
+.expense-table select {
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid #c8d2cc;
+    border-radius: 5px;
+    background: #fff;
+    color: #24332e;
+}
+
+.file-field input {
+    max-width: 100%;
+    padding: 8px;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 13px;
+    border: 1px solid #b8c9bf;
+    border-radius: 5px;
+    background: #fff;
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.action-button:hover:not(:disabled) {
+    background: #edf4ef;
+}
+
+.action-button:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+.danger-button {
+    color: #9f3021;
+    border-color: #dfb6aa;
+}
+
+.danger-button:hover:not(:disabled) {
+    background: #fff0eb;
+}
+
+.data-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.data-tools h3 {
+    width: 100%;
+}
+
+.import-report,
+.evaluation-report {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.import-report strong,
+.evaluation-report strong {
+    color: var(--green);
+}
+
+.import-report ul {
+    flex-basis: 100%;
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+.evaluation-report ul {
+    flex-basis: 100%;
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+.review-filters {
+    margin-bottom: 14px;
+}
+
+.check-filter {
+    display: flex !important;
+    align-items: center;
+    min-height: 40px;
+    flex: initial !important;
+}
+
+.expense-table-wrap {
+    overflow-x: auto;
+    border-top: 1px solid var(--line);
+}
+
+.expense-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 12px;
+}
+
+.expense-table th,
+.expense-table td {
+    padding: 10px 9px;
+    border-bottom: 1px solid #edf0ee;
+    vertical-align: middle;
+}
+
+.expense-table th {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.expense-table td:first-child {
+    min-width: 180px;
+}
+
+.expense-table td:first-child strong,
+.expense-table td:first-child span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.expense-table td:first-child span {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.expense-table select {
+    width: 100%;
+}
+
+.expense-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.expense-pagination span {
+    margin-right: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.tool-empty,
+.tool-message {
+    padding: 12px 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.tool-error {
+    color: #9f3021;
+}
+
 .history-section .section-heading {
     margin-bottom: 15px;
 }

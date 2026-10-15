@@ -1,0 +1,2461 @@
+{
+  "components": {
+    "schemas": {
+      "ApiEnvelope_ArchiveResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[ArchiveResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_CategoryListData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoryListData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[CategoryListData]",
+        "type": "object"
+      },
+      "ApiEnvelope_CategoryResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoryResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[CategoryResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_DashboardResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[DashboardResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_DeletionResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeletionResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[DeletionResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_EvaluationResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[EvaluationResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_ExpenseListData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpenseListData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[ExpenseListData]",
+        "type": "object"
+      },
+      "ApiEnvelope_ExpenseResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpenseResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[ExpenseResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_HealthData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[HealthData]",
+        "type": "object"
+      },
+      "ApiEnvelope_HouseholdData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HouseholdData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[HouseholdData]",
+        "type": "object"
+      },
+      "ApiEnvelope_ImportResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[ImportResultData]",
+        "type": "object"
+      },
+      "ApiEnvelope_InsightResultData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InsightResultData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          }
+        },
+        "required": [
+          "data",
+          "errors",
+          "meta"
+        ],
+        "title": "ApiEnvelope[InsightResultData]",
+        "type": "object"
+      },
+      "ApiError": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "ApiMeta": {
+        "properties": {
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "ApiMeta",
+        "type": "object"
+      },
+      "ArchiveResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "archive": {
+            "additionalProperties": true,
+            "title": "Archive",
+            "type": "object"
+          }
+        },
+        "required": [
+          "archive"
+        ],
+        "title": "ArchiveResultData",
+        "type": "object"
+      },
+      "Category": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical_key": {
+            "minLength": 1,
+            "title": "Canonical Key",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "household_id": {
+            "minLength": 1,
+            "title": "Household Id",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_standard": {
+            "default": true,
+            "title": "Is Standard",
+            "type": "boolean"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "parent_category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Category Id"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "household_id",
+          "canonical_key",
+          "label"
+        ],
+        "title": "Category",
+        "type": "object"
+      },
+      "CategoryAmount": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "minimum": 0.0,
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category_id": {
+            "minLength": 1,
+            "title": "Category Id",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "percentage": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percentage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "category_id",
+          "label",
+          "amount_cents",
+          "percentage"
+        ],
+        "title": "CategoryAmount",
+        "type": "object"
+      },
+      "CategoryConfusion": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "exclusiveMinimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "expected_category_id": {
+            "minLength": 1,
+            "title": "Expected Category Id",
+            "type": "string"
+          },
+          "predicted_category_id": {
+            "minLength": 1,
+            "title": "Predicted Category Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_category_id",
+          "predicted_category_id",
+          "count"
+        ],
+        "title": "CategoryConfusion",
+        "type": "object"
+      },
+      "CategoryCorrectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "minLength": 1,
+            "title": "Category Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id"
+        ],
+        "title": "CategoryCorrectionRequest",
+        "type": "object"
+      },
+      "CategoryCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "parent_category_id": {
+            "minLength": 1,
+            "title": "Parent Category Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "parent_category_id"
+        ],
+        "title": "CategoryCreateRequest",
+        "type": "object"
+      },
+      "CategoryListData": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            },
+            "title": "Categories",
+            "type": "array"
+          }
+        },
+        "required": [
+          "categories"
+        ],
+        "title": "CategoryListData",
+        "type": "object"
+      },
+      "CategoryMergeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "source_category_id": {
+            "minLength": 1,
+            "title": "Source Category Id",
+            "type": "string"
+          },
+          "target_category_id": {
+            "minLength": 1,
+            "title": "Target Category Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_category_id",
+          "target_category_id"
+        ],
+        "title": "CategoryMergeRequest",
+        "type": "object"
+      },
+      "CategoryRenameRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "CategoryRenameRequest",
+        "type": "object"
+      },
+      "CategoryResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "title": "CategoryResultData",
+        "type": "object"
+      },
+      "DashboardResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "dashboard": {
+            "$ref": "#/components/schemas/MonthlyDashboard"
+          }
+        },
+        "required": [
+          "dashboard"
+        ],
+        "title": "DashboardResultData",
+        "type": "object"
+      },
+      "DeletionResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted_expense_count": {
+            "title": "Deleted Expense Count",
+            "type": "integer"
+          },
+          "household_id": {
+            "title": "Household Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "deleted",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "household_id",
+          "deleted_expense_count"
+        ],
+        "title": "DeletionResultData",
+        "type": "object"
+      },
+      "EvaluationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Version"
+          }
+        },
+        "title": "EvaluationRequest",
+        "type": "object"
+      },
+      "EvaluationResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation": {
+            "$ref": "#/components/schemas/EvaluationRun"
+          }
+        },
+        "required": [
+          "evaluation"
+        ],
+        "title": "EvaluationResultData",
+        "type": "object"
+      },
+      "EvaluationRun": {
+        "additionalProperties": false,
+        "properties": {
+          "accuracy": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "confusion_details": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CategoryConfusion"
+            },
+            "title": "Confusion Details",
+            "type": "array"
+          },
+          "correct_count": {
+            "minimum": 0.0,
+            "title": "Correct Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset_version": {
+            "minLength": 1,
+            "title": "Dataset Version",
+            "type": "string"
+          },
+          "household_id": {
+            "minLength": 1,
+            "title": "Household Id",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "minLength": 1,
+            "title": "Taxonomy Version",
+            "type": "string"
+          },
+          "total_count": {
+            "exclusiveMinimum": 0.0,
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "household_id",
+          "dataset_version",
+          "taxonomy_version",
+          "total_count",
+          "correct_count",
+          "accuracy",
+          "passed"
+        ],
+        "title": "EvaluationRun",
+        "type": "object"
+      },
+      "Expense": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category_id": {
+            "minLength": 1,
+            "title": "Category Id",
+            "type": "string"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "household_id": {
+            "minLength": 1,
+            "title": "Household Id",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_method": {
+            "enum": [
+              "dinheiro",
+              "debito",
+              "credito"
+            ],
+            "title": "Payment Method",
+            "type": "string"
+          },
+          "recurring": {
+            "default": false,
+            "title": "Recurring",
+            "type": "boolean"
+          },
+          "review_required": {
+            "default": false,
+            "title": "Review Required",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "csv"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_override": {
+            "default": false,
+            "title": "User Override",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "household_id",
+          "date",
+          "description",
+          "amount_cents",
+          "payment_method",
+          "category_id",
+          "source"
+        ],
+        "title": "Expense",
+        "type": "object"
+      },
+      "ExpenseCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_method": {
+            "enum": [
+              "dinheiro",
+              "debito",
+              "credito"
+            ],
+            "title": "Payment Method",
+            "type": "string"
+          },
+          "recurring": {
+            "default": false,
+            "title": "Recurring",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "description",
+          "amount_cents",
+          "payment_method"
+        ],
+        "title": "ExpenseCreateRequest",
+        "type": "object"
+      },
+      "ExpenseListData": {
+        "additionalProperties": false,
+        "properties": {
+          "expenses": {
+            "items": {
+              "$ref": "#/components/schemas/Expense"
+            },
+            "title": "Expenses",
+            "type": "array"
+          },
+          "total_count": {
+            "minimum": 0.0,
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expenses",
+          "total_count"
+        ],
+        "title": "ExpenseListData",
+        "type": "object"
+      },
+      "ExpenseResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "expense": {
+            "$ref": "#/components/schemas/Expense"
+          }
+        },
+        "required": [
+          "expense"
+        ],
+        "title": "ExpenseResultData",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthData": {
+        "additionalProperties": false,
+        "properties": {
+          "persistence_mode": {
+            "title": "Persistence Mode",
+            "type": "string"
+          },
+          "provider_configured": {
+            "title": "Provider Configured",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "provider_configured",
+          "persistence_mode"
+        ],
+        "title": "HealthData",
+        "type": "object"
+      },
+      "Household": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "is_demo": {
+            "default": true,
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Household",
+        "type": "object"
+      },
+      "HouseholdData": {
+        "additionalProperties": false,
+        "properties": {
+          "household": {
+            "$ref": "#/components/schemas/Household"
+          }
+        },
+        "required": [
+          "household"
+        ],
+        "title": "HouseholdData",
+        "type": "object"
+      },
+      "ImportResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "import_run": {
+            "$ref": "#/components/schemas/ImportRun"
+          }
+        },
+        "required": [
+          "import_run"
+        ],
+        "title": "ImportResultData",
+        "type": "object"
+      },
+      "ImportRowError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "minLength": 1,
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "row": {
+            "minimum": 1.0,
+            "title": "Row",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "row",
+          "field",
+          "code",
+          "message"
+        ],
+        "title": "ImportRowError",
+        "type": "object"
+      },
+      "ImportRun": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "household_id": {
+            "minLength": 1,
+            "title": "Household Id",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "imported_rows": {
+            "minimum": 0.0,
+            "title": "Imported Rows",
+            "type": "integer"
+          },
+          "rejected_rows": {
+            "minimum": 0.0,
+            "title": "Rejected Rows",
+            "type": "integer"
+          },
+          "row_errors": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ImportRowError"
+            },
+            "title": "Row Errors",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Name"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "total_rows": {
+            "minimum": 0.0,
+            "title": "Total Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "household_id",
+          "total_rows",
+          "imported_rows",
+          "rejected_rows",
+          "status"
+        ],
+        "title": "ImportRun",
+        "type": "object"
+      },
+      "InsightCard": {
+        "additionalProperties": false,
+        "properties": {
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "text": {
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "text",
+          "source_refs"
+        ],
+        "title": "InsightCard",
+        "type": "object"
+      },
+      "InsightResultData": {
+        "additionalProperties": false,
+        "properties": {
+          "insight_run": {
+            "$ref": "#/components/schemas/InsightRun"
+          },
+          "sources": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/InsightSourceExpense"
+              },
+              "type": "array"
+            },
+            "title": "Sources",
+            "type": "object"
+          }
+        },
+        "required": [
+          "insight_run",
+          "sources"
+        ],
+        "title": "InsightResultData",
+        "type": "object"
+      },
+      "InsightRun": {
+        "additionalProperties": false,
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/InsightCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "completion_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Tokens"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "estimated_cost_usd": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost Usd"
+          },
+          "household_id": {
+            "minLength": 1,
+            "title": "Household Id",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "month": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Month",
+            "type": "string"
+          },
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "provider_status": {
+            "enum": [
+              "used",
+              "unavailable",
+              "failed",
+              "not_configured"
+            ],
+            "title": "Provider Status",
+            "type": "string"
+          },
+          "safety_status": {
+            "enum": [
+              "accepted",
+              "fallback"
+            ],
+            "title": "Safety Status",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "summary_hash": {
+            "minLength": 1,
+            "title": "Summary Hash",
+            "type": "string"
+          },
+          "summary_version": {
+            "minLength": 1,
+            "title": "Summary Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "household_id",
+          "month",
+          "summary_version",
+          "summary_hash",
+          "cards",
+          "provider_status",
+          "safety_status"
+        ],
+        "title": "InsightRun",
+        "type": "object"
+      },
+      "InsightSourceExpense": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "category_label": {
+            "title": "Category Label",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "expense_id": {
+            "title": "Expense Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expense_id",
+          "category_label",
+          "date",
+          "amount_cents"
+        ],
+        "title": "InsightSourceExpense",
+        "type": "object"
+      },
+      "MonthlyDashboard": {
+        "additionalProperties": false,
+        "properties": {
+          "category_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryAmount"
+            },
+            "title": "Category Breakdown",
+            "type": "array"
+          },
+          "change_cents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Cents"
+          },
+          "change_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Percentage"
+          },
+          "expense_count": {
+            "minimum": 0.0,
+            "title": "Expense Count",
+            "type": "integer"
+          },
+          "month": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Month",
+            "type": "string"
+          },
+          "payment_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentAmount"
+            },
+            "title": "Payment Breakdown",
+            "type": "array"
+          },
+          "previous_month_total_cents": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Month Total Cents"
+          },
+          "recurring_cents": {
+            "minimum": 0.0,
+            "title": "Recurring Cents",
+            "type": "integer"
+          },
+          "total_cents": {
+            "minimum": 0.0,
+            "title": "Total Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "total_cents",
+          "expense_count",
+          "category_breakdown",
+          "payment_breakdown",
+          "recurring_cents"
+        ],
+        "title": "MonthlyDashboard",
+        "type": "object"
+      },
+      "MonthlyInsightsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "month": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month"
+        ],
+        "title": "MonthlyInsightsRequest",
+        "type": "object"
+      },
+      "PaymentAmount": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "minimum": 0.0,
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "payment_method": {
+            "enum": [
+              "dinheiro",
+              "debito",
+              "credito"
+            ],
+            "title": "Payment Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_method",
+          "amount_cents"
+        ],
+        "title": "PaymentAmount",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Home Financial API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/categories": {
+      "get": {
+        "operationId": "list_categories_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CategoryListData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Categories"
+      },
+      "post": {
+        "operationId": "create_category_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CategoryResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Category"
+      }
+    },
+    "/categories/merge": {
+      "post": {
+        "operationId": "merge_categories_categories_merge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryMergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CategoryResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Categories"
+      }
+    },
+    "/categories/{category_id}": {
+      "patch": {
+        "operationId": "rename_category_categories__category_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryRenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_CategoryResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename Category"
+      }
+    },
+    "/dashboard/monthly": {
+      "get": {
+        "operationId": "monthly_dashboard_dashboard_monthly_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_DashboardResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Monthly Dashboard"
+      }
+    },
+    "/evaluation/categorization": {
+      "post": {
+        "operationId": "evaluate_categorization_evaluation_categorization_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_EvaluationResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Categorization"
+      }
+    },
+    "/expenses": {
+      "get": {
+        "operationId": "list_expenses_expenses_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confidence_min",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Confidence Min"
+            }
+          },
+          {
+            "in": "query",
+            "name": "payment_method",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "dinheiro",
+                    "debito",
+                    "credito"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payment Method"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "manual",
+                    "csv"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "in": "query",
+            "name": "review_required",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Required"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ExpenseListData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Expenses"
+      },
+      "post": {
+        "operationId": "create_expense_expenses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ExpenseResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Expense"
+      }
+    },
+    "/expenses/{expense_id}/category": {
+      "patch": {
+        "operationId": "correct_expense_category_expenses__expense_id__category_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "expense_id",
+            "required": true,
+            "schema": {
+              "title": "Expense Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCorrectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ExpenseResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Correct Expense Category"
+      }
+    },
+    "/exports/archive.json": {
+      "get": {
+        "operationId": "export_archive_exports_archive_json_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ArchiveResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Archive"
+      }
+    },
+    "/exports/expenses.csv": {
+      "get": {
+        "operationId": "export_csv_exports_expenses_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Csv"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_HealthData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/households/demo": {
+      "get": {
+        "operationId": "get_demo_household_households_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_HouseholdData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Demo Household"
+      }
+    },
+    "/households/{household_id}/demo-data": {
+      "delete": {
+        "operationId": "delete_household_data_households__household_id__demo_data_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "household_id",
+            "required": true,
+            "schema": {
+              "title": "Household Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_DeletionResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Household Data"
+      }
+    },
+    "/imports/csv": {
+      "post": {
+        "operationId": "import_csv_imports_csv_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Name"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_ImportResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Csv"
+      }
+    },
+    "/insights/monthly": {
+      "post": {
+        "operationId": "monthly_insights_insights_monthly_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonthlyInsightsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope_InsightResultData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Monthly Insights"
+      }
+    }
+  }
+}

@@ -39,3 +39,6 @@ pnpm-debug.log*
 # Operating system files
 .DS_Store
 Thumbs.db
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log

@@ -1,7 +1,23 @@
-export const categories = ['Alimentacao', 'Moradia', 'Transporte', 'Saude', 'Educacao', 'Comunicacao', 'Lazer', 'Outros'] as const
+export const categoryOptions = [
+    { id: 'category-moradia', label: 'Moradia' },
+    { id: 'category-mercado', label: 'Mercado' },
+    { id: 'category-restaurantes', label: 'Restaurantes' },
+    { id: 'category-transporte', label: 'Transporte' },
+    { id: 'category-saude', label: 'Saúde' },
+    { id: 'category-educacao', label: 'Educação' },
+    { id: 'category-contas-da-casa', label: 'Contas da casa' },
+    { id: 'category-assinaturas', label: 'Assinaturas' },
+    { id: 'category-dividas', label: 'Dívidas' },
+    { id: 'category-pets', label: 'Pets' },
+    { id: 'category-impostos-taxas', label: 'Impostos/taxas' },
+    { id: 'category-cuidados-pessoais', label: 'Cuidados pessoais' },
+    { id: 'category-outros', label: 'Outros' },
+] as const
+export const categories = categoryOptions.map(option => option.id)
 export const payments = { dinheiro: 'Dinheiro', debito: 'Debito', credito: 'Credito' } as const
 
-export type Category = typeof categories[number]
+export type Category = string
+export type CategoryOption = { id: string; label: string }
 export type Payment = keyof typeof payments
 export type ExpenseInput = {
     date: string
@@ -11,6 +27,12 @@ export type ExpenseInput = {
     payment: Payment
     recurring: boolean
 }
+export type InsightSource = {
+    expenseId: string
+    categoryLabel: string
+    date: string
+    amountCents: number
+}
 export type RunResult = {
     runId: string
     completedAt: string
@@ -19,13 +41,15 @@ export type RunResult = {
     totalCents: number
     count: number
     recurringCents: number
-    categories: { name: Category; cents: number }[]
+    categories: { name: Category; label: string; cents: number }[]
     payments: { name: Payment; cents: number }[]
+    insight?: { title: string; text: string; sources: InsightSource[] }
 }
 export type RunStatus = { status: 'running' } | { status: 'done'; result: RunResult }
 export type RunService = {
-    startRun(input: ExpenseInput): Promise<{ runId: string }>
+    startRun(input: ExpenseInput, requestId?: string): Promise<{ runId: string }>
     getRunStatus(runId: string): Promise<RunStatus>
+    getCategories?(): Promise<CategoryOption[]>
 }
 export type CompletedRun = RunResult & { requestId: string; submittedInput: ExpenseInput }
 export type WorkflowState = {
@@ -38,12 +62,15 @@ export type WorkflowEvent =
     | { type: 'started'; runId: string }
     | { type: 'completed'; runId: string; result: RunResult; input: ExpenseInput }
     | { type: 'failed'; runId: string; message: string }
+    | { type: 'cleared' }
     | { type: 'reset' }
 
 export const initialState: WorkflowState = { phase: 'idle', runId: null, history: [], error: null }
 
 export function workflowReducer(state: WorkflowState, event: WorkflowEvent): WorkflowState {
     switch (event.type) {
+        case 'cleared':
+            return initialState
         case 'started':
             return state.phase === 'running' ? state : { ...state, phase: 'running', runId: event.runId, error: null }
         case 'completed':
@@ -70,7 +97,7 @@ export function parseAmount(value: string): number {
     return cents
 }
 
-export function validateInput(input: ExpenseInput): ExpenseInput {
+export function validateInput(input: ExpenseInput, allowedCategories: readonly string[] = categories): ExpenseInput {
     const date = new Date(`${input.date}T12:00:00Z`)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== input.date) {
         throw new Error('Informe uma data valida.')
@@ -80,7 +107,7 @@ export function validateInput(input: ExpenseInput): ExpenseInput {
     if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0 || input.amountCents > 99_999_999) {
         throw new Error('Informe um valor positivo em reais.')
     }
-    if (!categories.includes(input.category) || !Object.hasOwn(payments, input.payment) || typeof input.recurring !== 'boolean') {
+    if (!allowedCategories.includes(input.category) || !Object.hasOwn(payments, input.payment) || typeof input.recurring !== 'boolean') {
         throw new Error('Confira categoria, pagamento e recorrencia.')
     }
     return { ...input, description }

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { initialState, parseAmount, validateInput, workflowReducer, type ExpenseInput } from './workflow'
 import { createRunService } from './services/runs'
 
-const input: ExpenseInput = { date: '2026-10-09', description: 'Mercado demo', amountCents: 12345, category: 'Alimentacao', payment: 'debito', recurring: false }
+const input: ExpenseInput = { date: '2026-10-09', description: 'Mercado demo', amountCents: 12345, category: 'category-mercado', payment: 'debito', recurring: false }
 afterEach(() => vi.useRealTimers())
 
 describe('BRL and input validation (AC-P0.3.1/.2/.3/.5)', () => {
@@ -46,7 +46,7 @@ describe('stub run service', () => {
         const service = createRunService(0)
         const first = await service.startRun({ ...input, amountCents: 10 })
         const firstStatus = await service.getRunStatus(first.runId)
-        const second = await service.startRun({ ...input, date: '2026-11-01', category: 'Moradia', payment: 'credito', amountCents: 20, recurring: true })
+        const second = await service.startRun({ ...input, date: '2026-11-01', category: 'category-moradia', payment: 'credito', amountCents: 20, recurring: true })
         expect(second).toEqual(first)
         expect(second).toEqual({ runId: 'demo-run' })
         expect(await service.getRunStatus(second.runId)).toEqual(firstStatus)

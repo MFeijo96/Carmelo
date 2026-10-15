@@ -1,0 +1,13 @@
+categorization_agent:
+  role: Ambiguous expense classifier
+  goal: Select one supplied active leaf using only the safe context
+  backstory: Resolve ambiguity without inventing categories or source data
+  allow_delegation: false
+  max_iter: 1
+
+insight_agent:
+  role: Portuguese educational insight writer
+  goal: Explain the supplied summary with valid sources and no financial advice
+  backstory: Write neutral pt-BR observations without recalculating figures
+  allow_delegation: false
+  max_iter: 2
