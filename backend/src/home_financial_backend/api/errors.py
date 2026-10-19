@@ -11,6 +11,8 @@ from home_financial_backend.domain.errors import (
     EvaluationUnavailable,
     ExpenseNotFound,
     HouseholdNotFound,
+    IdempotencyConflict,
+    PendingExpenseReview,
 )
 
 
@@ -35,7 +37,7 @@ async def domain_error_handler(request: Request, error: Exception) -> JSONRespon
         raise error
     if isinstance(error, EvaluationUnavailable):
         status_code = 503
-    elif isinstance(error, CategoryAlreadyExists):
+    elif isinstance(error, (PendingExpenseReview, CategoryAlreadyExists, IdempotencyConflict)):
         status_code = 409
     elif isinstance(error, (CategoryNotFound, ExpenseNotFound, HouseholdNotFound)):
         status_code = 404
@@ -46,7 +48,13 @@ async def domain_error_handler(request: Request, error: Exception) -> JSONRespon
     return _error_response(
         request,
         status_code=status_code,
-        code=type(error).__name__,
+        code=(
+            "pending_expense_review"
+            if isinstance(error, PendingExpenseReview)
+            else "idempotency_conflict"
+            if isinstance(error, IdempotencyConflict)
+            else type(error).__name__
+        ),
         message=str(error),
     )
 

@@ -18,7 +18,7 @@ from home_financial_backend.runtime.adapters import (
     CrewAIClassificationFallback,
     CrewAIInsightGenerator,
 )
-from home_financial_backend.runtime.provider import create_openai_llm
+from home_financial_backend.runtime.provider import create_llm
 from home_financial_backend.services.categories import CategoryService
 from home_financial_backend.services.classification import ClassificationService
 from home_financial_backend.services.csv_import import CSVImportService
@@ -36,7 +36,7 @@ app.add_exception_handler(DomainError, domain_error_handler)
 app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 app.state.settings = settings
 app.state.repositories = create_repositories(settings)
-app.state.llm = create_openai_llm(settings)
+app.state.llm = create_llm(settings)
 app.state.classification_fallback = (
     CrewAIClassificationFallback(app.state.llm) if app.state.llm is not None else None
 )
@@ -83,9 +83,7 @@ app.state.insight_service = InsightsService(
     insight_runs=app.state.repositories.insight_runs,
     generator=app.state.insight_generator,
     merchant_contexts=app.state.merchant_context_service,
-    model_name=settings.openai_model,
-    input_usd_per_million_tokens=settings.openai_input_usd_per_million_tokens,
-    output_usd_per_million_tokens=settings.openai_output_usd_per_million_tokens,
+    model_name=settings.copilot_model,
 )
 app.state.export_service = ExportService(
     households=app.state.repositories.households,
@@ -107,7 +105,7 @@ app.add_middleware(
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "X-Request-ID"],
+    allow_headers=["Content-Type", "X-Request-ID", "Idempotency-Key"],
 )
 
 

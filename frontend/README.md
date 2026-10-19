@@ -24,11 +24,11 @@ For this workspace session, Node was downloaded and checksum-verified in `/tmp/n
 
 ## Use
 
-Enter a fictitious expense date, description, BRL value (for example `123,45`), active leaf category, payment method, and optional recurrence. Categories load from the backend. **Executar** posts the expense, then reads the backend's deterministic monthly dashboard and grounded insight. The API, not the browser, owns classification and financial totals.
+Enter a fictitious expense date, description, BRL value (for example `123,45`), active leaf category or **Automatica**, payment method, and optional recurrence. Categories load from the backend. **Executar** posts the expense, then reads the deterministic monthly dashboard and review status. Insights are generated only through **Gerar insights do mês** in the **Despesas** tab. The API, not the browser, owns classification and financial totals.
 
 The top banner shows **Crew: idle**, **Crew: running**, **Crew: done**, or **Crew: error**. `Atualizado em` advances on client workflow and service responses. Backend validation errors appear inline. **Tentar novamente** retries the original input; if the expense was created but its dashboard request failed, the client reuses that record instead of posting a duplicate.
 
-Results show real monthly totals, category/payment breakdowns, recurring amount, saved expense, insight, and supporting sources. Browser history is session-only and clears on refresh. Backend records remain until the API process restarts in default memory mode. Reset clears the current form/results but does not delete backend data.
+Results show backend monthly totals, category/payment breakdowns, recurring amount and the saved expense. On opening or refreshing the page, saved expenses are reloaded from the backend and the latest is selected; restored results use current monthly totals, not historical snapshots. No financial history is stored in localStorage or cookies. Loading errors offer a retry instead of suggesting the data was deleted. Backend records remain until the API process restarts in default memory mode; Firestore Emulator data has its own runtime lifecycle. Reset clears the current form/results but does not delete backend data.
 
 The **Gestão da casa** tabs provide CSV import with row errors, monthly expense review and category correction, custom category create/rename/merge, CSV/JSON export, confirmed demo-data deletion, and the deterministic golden evaluation report. Deleting demo data also clears the visible browser run history.
 

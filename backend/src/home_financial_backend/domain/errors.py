@@ -53,6 +53,14 @@ class InsightRejected(DomainError):
     pass
 
 
+class PendingExpenseReview(DomainError):
+    pass
+
+
+class IdempotencyConflict(DomainError):
+    pass
+
+
 class CSVRowInvalid(DomainError):
     def __init__(self, errors: tuple[ImportRowError, ...]) -> None:
         self.errors = errors

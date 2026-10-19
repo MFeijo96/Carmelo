@@ -20,6 +20,10 @@ describe('BRL and input validation (AC-P0.3.1/.2/.3/.5)', () => {
         expect(() => validateInput({ ...input, payment: 'pix' as ExpenseInput['payment'] })).toThrow()
         expect(() => validateInput({ ...input, category: 'unknown' as ExpenseInput['category'] })).toThrow()
     })
+    it('accepts automatic categorization without treating it as a stored category', () => {
+        expect(validateInput({ ...input, category: '' }, []).category).toBe('')
+        expect(() => validateInput({ ...input, category: 'unknown' }, [])).toThrow()
+    })
 })
 
 describe('stub run service', () => {
@@ -74,6 +78,18 @@ describe('workflow FSM', () => {
         expect(done.history).toHaveLength(1)
         expect(done.history[0].submittedInput).toEqual(input)
         expect(done.history[0].requestId).toBe(runId)
+        const lateRestore = workflowReducer(done, {
+            type: 'restored', results: [
+                { ...status.result, input: { ...input, description: 'Stale stored value' } },
+                { ...status.result, runId: 'older-expense' },
+            ]
+        })
+        expect(lateRestore.history).toHaveLength(2)
+        expect(lateRestore.history[0]).toEqual(done.history[0])
+        expect(lateRestore.phase).toBe('done')
+        const duringRun = workflowReducer(running, { type: 'restored', results: [status.result] })
+        expect(duringRun.phase).toBe('running')
+        expect(duringRun.runId).toBe(runId)
         expect(workflowReducer(done, completed)).toBe(done)
         const reset = workflowReducer(done, { type: 'reset' })
         expect(reset.phase).toBe('idle')

@@ -23,6 +23,7 @@ type ExpenseRecord = {
     recurring: boolean
     category_id: string
     created_at: string
+    review_required?: boolean
 }
 
 type MonthlyDashboard = {
@@ -39,18 +40,6 @@ type CategoryRecord = {
     label: string
     parent_category_id: string | null
     is_active: boolean
-}
-
-type MonthlyInsightResponse = {
-    insight_run: {
-        cards: { title: string; text: string; source_refs: string[] }[]
-    }
-    sources: Record<string, {
-        expense_id: string
-        category_label: string
-        date: string
-        amount_cents: number
-    }[]>
 }
 
 const mockResult: RunResult = {
@@ -100,6 +89,24 @@ async function request<T>(baseUrl: string, path: string, init?: RequestInit): Pr
     return envelope.data
 }
 
+function expenseResult(expense: ExpenseRecord, dashboard: MonthlyDashboard, pendingReviewCount: number | null): RunResult {
+    return {
+        runId: expense.id,
+        completedAt: expense.created_at,
+        input: {
+            date: expense.date, description: expense.description, amountCents: expense.amount_cents,
+            payment: expense.payment_method, recurring: expense.recurring, category: expense.category_id,
+        },
+        month: dashboard.month,
+        totalCents: dashboard.total_cents,
+        count: dashboard.expense_count,
+        recurringCents: dashboard.recurring_cents,
+        categories: dashboard.category_breakdown.map(item => ({ name: item.category_id, label: item.label, cents: item.amount_cents })),
+        payments: dashboard.payment_breakdown.map(item => ({ name: item.payment_method, cents: item.amount_cents })),
+        pendingReviewCount,
+    }
+}
+
 export function createApiRunService(
     baseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, ''),
 ): RunService {
@@ -119,19 +126,46 @@ export function createApiRunService(
         return activeLeaves
     }
 
+    async function getHistory(): Promise<RunResult[]> {
+        const expenses: ExpenseRecord[] = []
+        let totalCount = 0
+        do {
+            const page = await request<{ expenses: ExpenseRecord[]; total_count: number }>(
+                baseUrl, `/expenses?offset=${expenses.length}&limit=100`,
+            )
+            totalCount = page.total_count
+            if (page.expenses.length === 0) break
+            expenses.push(...page.expenses)
+        } while (expenses.length < totalCount)
+        const months = [...new Set(expenses.map(expense => expense.date.slice(0, 7)))]
+        const dashboards = new Map(await Promise.all(months.map(async month => {
+            const data = await request<{ dashboard: MonthlyDashboard }>(baseUrl, `/dashboard/monthly?month=${encodeURIComponent(month)}`)
+            return [month, data.dashboard] as const
+        })))
+        const restored = [...new Map(expenses.map(expense => [expense.id, expense])).values()]
+            .sort((first, second) => second.created_at.localeCompare(first.created_at) || second.id.localeCompare(first.id))
+            .map(expense => {
+                const month = expense.date.slice(0, 7)
+                const pending = expenses.filter(item => item.date.slice(0, 7) === month && item.review_required).length
+                return expenseResult(expense, dashboards.get(month)!, pending)
+            })
+        for (const result of restored) results.set(result.runId, result)
+        return restored
+    }
+
     async function startRun(rawInput: ExpenseInput, requestId = crypto.randomUUID()): Promise<{ runId: string }> {
         const input = validateInput(rawInput, allowedCategoryIds)
         let expense = pendingExpenses.get(requestId)
         if (!expense) {
             const createdData = await request<{ expense: ExpenseRecord }>(baseUrl, '/expenses', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestId },
                 body: JSON.stringify({
                     date: input.date,
                     description: input.description,
                     amount_cents: input.amountCents,
                     payment_method: input.payment,
-                    category_id: input.category,
+                    category_id: input.category || null,
                     recurring: input.recurring,
                 }),
             })
@@ -144,48 +178,17 @@ export function createApiRunService(
             `/dashboard/monthly?month=${encodeURIComponent(month)}`,
         )
         const dashboard = dashboardData.dashboard
-        let insight: RunResult['insight']
+        let pendingReviewCount: number | null = null
         try {
-            const insightData = await request<MonthlyInsightResponse>(baseUrl, '/insights/monthly', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ month }),
-            })
-            const card = insightData.insight_run.cards[0]
-            if (card) {
-                insight = {
-                    title: card.title,
-                    text: card.text,
-                    sources: card.source_refs.flatMap(token => insightData.sources[token] ?? []).map(source => ({
-                        expenseId: source.expense_id,
-                        categoryLabel: source.category_label,
-                        date: source.date,
-                        amountCents: source.amount_cents,
-                    })),
-                }
-            }
+            const reviewData = await request<{ total_count: number }>(
+                baseUrl,
+                `/expenses?month=${encodeURIComponent(month)}&review_required=true&limit=1`,
+            )
+            pendingReviewCount = reviewData.total_count
         } catch {
-            // Insights are best-effort; a failure must not turn a persisted expense into a failed run.
+            pendingReviewCount = null
         }
-        results.set(expense.id, {
-            runId: expense.id,
-            completedAt: expense.created_at,
-            input,
-            month: dashboard.month,
-            totalCents: dashboard.total_cents,
-            count: dashboard.expense_count,
-            recurringCents: dashboard.recurring_cents,
-            categories: dashboard.category_breakdown.map(item => ({
-                name: item.category_id,
-                label: item.label,
-                cents: item.amount_cents,
-            })),
-            payments: dashboard.payment_breakdown.map(item => ({
-                name: item.payment_method,
-                cents: item.amount_cents,
-            })),
-            insight,
-        })
+        results.set(expense.id, expenseResult(expense, dashboard, pendingReviewCount))
         pendingExpenses.delete(requestId)
         return { runId: expense.id }
     }
@@ -196,10 +199,11 @@ export function createApiRunService(
         return { status: 'done' as const, result: structuredClone(result) }
     }
 
-    return { startRun, getRunStatus, getCategories }
+    return { startRun, getRunStatus, getCategories, getHistory }
 }
 
 const apiService = createApiRunService()
 export const startRun = apiService.startRun
 export const getRunStatus = apiService.getRunStatus
 export const getCategories = apiService.getCategories
+export const getHistory = apiService.getHistory

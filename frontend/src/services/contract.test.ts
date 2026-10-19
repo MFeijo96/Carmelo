@@ -24,8 +24,12 @@ const expense = { id: 'expense-1', date: '2026-10-12', description: 'Teste', amo
 const dashboard = { month: '2026-10', total_cents: 100, expense_count: 1, recurring_cents: 0, category_breakdown: [], payment_breakdown: [] }
 
 function respond(url: string) {
-    const path = new URL(url).pathname
-    if (path === '/expenses') return envelope({ expense })
+    const parsed = new URL(url)
+    const path = parsed.pathname
+    if (path === '/expenses' && parsed.searchParams.get('review_required') === 'true') {
+        return envelope({ total_count: 0 })
+    }
+    if (path === '/expenses') return envelope({ expense, expenses: [expense], total_count: 1 })
     if (path === '/dashboard/monthly') return envelope({ dashboard })
     if (path === '/insights/monthly') return envelope({ insight_run: { cards: [] }, sources: {} })
     return envelope({ categories: [] })
@@ -42,6 +46,7 @@ describe('frontend requests match the committed backend OpenAPI contract', () =>
         const attempts: Promise<unknown>[] = [
             householdService.listCategories(),
             householdService.listExpenses({ month: '2026-10' }),
+            householdService.generateInsights('2026-10'),
             householdService.importCsv(file),
             householdService.correctCategory('expense-1', 'category-mercado'),
             householdService.createCategory('Feira', 'category-alimentacao'),
@@ -53,6 +58,7 @@ describe('frontend requests match the committed backend OpenAPI contract', () =>
             householdService.deleteDemoData('demo-household'),
             householdService.evaluate(),
             createApiRunService('http://127.0.0.1:8000').getCategories?.() ?? Promise.resolve(),
+            createApiRunService('http://127.0.0.1:8000').getHistory?.() ?? Promise.resolve(),
             createApiRunService('http://127.0.0.1:8000').startRun({
                 date: '2026-10-12', description: 'Teste', amountCents: 100,
                 category: 'category-mercado', payment: 'debito', recurring: false,

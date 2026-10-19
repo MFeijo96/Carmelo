@@ -14,6 +14,64 @@ function fill(description = 'Mercado demo', amount = '123,45') {
 }
 
 describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () => {
+    it('shows a retryable history load error instead of claiming there are no saved expenses', async () => {
+        const stub = createRunService(0)
+        const getHistory = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue([])
+        const service = { ...stub, getHistory, startRun: vi.fn(stub.startRun) }
+        render(<App service={service} />)
+        expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar as despesas salvas.')
+        expect(screen.getByText('Histórico indisponível.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Tentar carregar novamente' }))
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+        expect(getHistory).toHaveBeenCalledTimes(2)
+        expect(service.startRun).not.toHaveBeenCalled()
+    })
+
+    it('reloads saved backend expenses on mount and remount without creating expenses', async () => {
+        const stub = createRunService(0)
+        const started = await stub.startRun({ date: '2026-10-09', description: 'Fixture', amountCents: 12345, category: 'category-mercado', payment: 'debito', recurring: false })
+        const stored = await stub.getRunStatus(started.runId)
+        if (stored.status !== 'done') throw new Error('Expected stored expense')
+        const result = { ...stored.result, input: { ...stored.result.input, description: 'Despesa persistida' } }
+        const service: RunService = { ...stub, getHistory: vi.fn(async () => [result]), startRun: vi.fn(stub.startRun) }
+        const first = render(<App service={service} />)
+        expect(await screen.findByRole('button', { name: 'Ver resultado: Despesa persistida' })).toBeInTheDocument()
+        expect(screen.getByRole('region', { name: 'Resultados' })).toHaveTextContent('Despesa persistida')
+        first.unmount()
+        render(<App service={service} />)
+        expect(await screen.findByRole('button', { name: 'Ver resultado: Despesa persistida' })).toBeInTheDocument()
+        expect(service.getHistory).toHaveBeenCalledTimes(2)
+        expect(service.startRun).not.toHaveBeenCalled()
+    })
+
+    it('submits automatic categorization and shows the category returned by the backend', async () => {
+        const stub = createRunService(0)
+        const service: RunService = {
+            ...stub,
+            startRun: vi.fn(stub.startRun),
+            getCategories: async () => [
+                { id: 'category-mercado', label: 'Mercado' },
+                { id: 'category-transporte', label: 'Transporte' },
+            ],
+            getRunStatus: async runId => {
+                const status = await stub.getRunStatus(runId)
+                return status.status === 'done'
+                    ? { ...status, result: { ...status.result, input: { ...status.result.input, category: 'category-transporte' } } }
+                    : status
+            },
+        }
+        render(<App service={service} />)
+        await screen.findByRole('option', { name: 'Transporte' })
+        fill('Transporte demo')
+        fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: '' } })
+        expect(screen.getByRole('option', { name: 'Automatica' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída'))
+        expect(service.startRun).toHaveBeenCalledWith(expect.objectContaining({ category: '' }), expect.any(String))
+        expect(screen.getByRole('region', { name: 'Resultados' }).querySelector('.record')).toHaveTextContent('Transporte')
+        expect(screen.getByLabelText('Categoria')).toHaveValue('')
+    })
+
     it('shows a top banner with state colors and real client update timestamps', async () => {
         vi.useFakeTimers()
         vi.setSystemTime(new Date('2026-10-09T15:00:00Z'))
@@ -21,28 +79,28 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         const banner = screen.getByRole('status')
         const timestamp = () => banner.querySelector('time')!.getAttribute('datetime')
         expect(document.querySelector('main')?.firstElementChild).toBe(banner)
-        expect(banner).toHaveTextContent('Crew: idle')
+        expect(banner).toHaveTextContent('Execução: ociosa')
         expect(banner.querySelector('.crew-state')).toHaveStyle({ color: '#606870' })
         expect(timestamp()).toBe('2026-10-09T15:00:00.000Z')
         vi.advanceTimersByTime(1000)
         fill()
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
-        expect(banner).toHaveTextContent('Crew: running')
+        expect(banner).toHaveTextContent('Execução: em andamento')
         expect(banner.querySelector('.crew-state')).toHaveStyle({ color: '#1755a6' })
-        expect(screen.getByRole('button', { name: 'Crew: running' })).toBeDisabled()
-        expect(screen.getByRole('heading', { name: 'Crew: running' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Execução: em andamento' })).toBeDisabled()
+        expect(screen.getByRole('heading', { name: 'Execução: em andamento' })).toBeInTheDocument()
         expect(timestamp()).toBe('2026-10-09T15:00:01.000Z')
         await act(async () => { await vi.advanceTimersByTimeAsync(400) })
-        expect(banner).toHaveTextContent('Crew: running')
+        expect(banner).toHaveTextContent('Execução: em andamento')
         expect(timestamp()).toBe('2026-10-09T15:00:01.400Z')
         await act(async () => { await vi.advanceTimersByTimeAsync(800) })
-        expect(banner).toHaveTextContent('Crew: done')
+        expect(banner).toHaveTextContent('Execução: concluída')
         expect(banner.querySelector('.crew-state')).toHaveStyle({ color: '#14614d' })
         expect(timestamp()).toBe('2026-10-09T15:00:02.200Z')
-        expect(within(screen.getByRole('region', { name: 'Resultados' })).getByText('Crew: done')).toBeInTheDocument()
+        expect(within(screen.getByRole('region', { name: 'Resultados' })).getByText('Execução: concluída')).toBeInTheDocument()
         vi.advanceTimersByTime(1000)
         fireEvent.click(screen.getByRole('button', { name: 'Redefinir' }))
-        expect(banner).toHaveTextContent('Crew: idle')
+        expect(banner).toHaveTextContent('Execução: ociosa')
         expect(timestamp()).toBe('2026-10-09T15:00:03.200Z')
         await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
         expect(timestamp()).toBe('2026-10-09T15:00:03.200Z')
@@ -59,23 +117,23 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         await act(async () => { await vi.advanceTimersByTimeAsync(0) })
         const banner = screen.getByRole('status')
         expect(banner).toHaveAttribute('data-state', 'error')
-        expect(banner).toHaveTextContent('Crew: error')
+        expect(banner).toHaveTextContent('Execução: erro')
         expect(banner.querySelector('.crew-state')).toHaveStyle({ color: '#b42318' })
-        expect(screen.getByRole('alert')).toHaveTextContent('Crew: error: Falha simulada.')
+        expect(screen.getByRole('alert')).toHaveTextContent('Execução: erro: Falha simulada.')
         vi.advanceTimersByTime(1000)
         fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-        expect(banner).toHaveTextContent('Crew: running')
+        expect(banner).toHaveTextContent('Execução: em andamento')
         await act(async () => { await vi.advanceTimersByTimeAsync(0) })
-        expect(banner).toHaveTextContent('Crew: done')
+        expect(banner).toHaveTextContent('Execução: concluída')
         expect(banner.querySelector('time')).toHaveAttribute('datetime', '2026-10-09T15:00:01.000Z')
         fill('Invalid demo', '0')
         vi.advanceTimersByTime(1000)
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
-        expect(banner).toHaveTextContent('Crew: error')
+        expect(banner).toHaveTextContent('Execução: erro')
         expect(banner.querySelector('time')).toHaveAttribute('datetime', '2026-10-09T15:00:02.000Z')
         vi.advanceTimersByTime(1000)
         fireEvent.click(screen.getByRole('button', { name: 'Redefinir' }))
-        expect(banner).toHaveTextContent('Crew: idle')
+        expect(banner).toHaveTextContent('Execução: ociosa')
         expect(banner.querySelector('.crew-state')).toHaveStyle({ color: '#606870' })
         expect(banner.querySelector('time')).toHaveAttribute('datetime', '2026-10-09T15:00:03.000Z')
     })
@@ -91,11 +149,11 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         fireEvent.click(submit)
         expect(submit).toBeDisabled()
         expect(screen.getByRole('button', { name: 'Redefinir' })).toBeDisabled()
-        expect(screen.getByRole('status')).toHaveTextContent('running')
+        expect(screen.getByRole('status')).toHaveTextContent('Execução: em andamento')
         expect(screen.getByLabelText('Descrição')).toBeDisabled()
         expect(service.startRun).toHaveBeenCalledTimes(1)
         await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
-        expect(screen.getByRole('status')).toHaveTextContent('done')
+        expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída')
         expect(screen.getByRole('button', { name: 'Ver resultado: Mercado demo' })).toHaveAttribute('aria-pressed', 'true')
         expect(screen.getByLabelText('Descrição')).toHaveValue('')
         expect(screen.getByLabelText('Categoria')).toHaveValue('category-mercado')
@@ -142,12 +200,68 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         fireEvent.change(screen.getByLabelText('Forma de pagamento'), { target: { value: 'dinheiro' } })
         fireEvent.click(screen.getByLabelText('Despesa recorrente'))
         fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('done'))
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída'))
         expect(service.startRun.mock.calls[1][0]).toEqual(originalInput)
         expect(screen.getByLabelText('Categoria')).toHaveValue('category-moradia')
         expect(screen.getByLabelText('Forma de pagamento')).toHaveValue('credito')
         expect(screen.getByLabelText('Despesa recorrente')).toBeChecked()
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('offers review navigation when monthly insights are held for pending expenses', async () => {
+        const stub = createRunService(0)
+        const service = {
+            ...stub,
+            getRunStatus: async (runId: string) => {
+                const status = await stub.getRunStatus(runId)
+                return status.status === 'done'
+                    ? { status: 'done' as const, result: { ...status.result, pendingReviewCount: 2 } }
+                    : status
+            },
+        }
+        render(<App service={service} />)
+        fill()
+        fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+
+        expect(await screen.findByText('2 despesas precisam de revisão antes dos insights do mês.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Revisar despesas' })).toBeInTheDocument()
+    })
+
+    it('asks the user to verify reviews when the pending status could not be loaded', async () => {
+        const stub = createRunService(0)
+        const service = {
+            ...stub,
+            getRunStatus: async (runId: string) => {
+                const status = await stub.getRunStatus(runId)
+                return status.status === 'done'
+                    ? { status: 'done' as const, result: { ...status.result, pendingReviewCount: null } }
+                    : status
+            },
+        }
+        render(<App service={service} />)
+        fill()
+        fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+
+        expect(await screen.findByText('Não foi possível confirmar as pendências. Os insights foram adiados.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Conferir despesas' })).toBeInTheDocument()
+    })
+
+    it('communicates deterministic fallback when the API reports a provider failure', async () => {
+        const stub = createRunService(0)
+        const service = {
+            ...stub,
+            getRunStatus: async (runId: string) => {
+                const status = await stub.getRunStatus(runId)
+                return status.status === 'done'
+                    ? { status: 'done' as const, result: { ...status.result, insightProviderStatus: 'failed' as const, insightProviderErrorCode: 'rate_limit' as const } }
+                    : status
+            },
+        }
+        render(<App service={service} />)
+        fill()
+        fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+
+        expect(await screen.findByText('O GitHub Copilot atingiu um limite de uso ou de créditos.')).toBeInTheDocument()
     })
 
     it('handles status failure without creating completed history', async () => {
@@ -160,7 +274,7 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
 
     it('resets errors, form defaults and results to idle while retaining history', async () => {
         render(<App service={createRunService(0)} />)
-        expect(screen.getByRole('status')).toHaveTextContent('idle')
+        expect(screen.getByRole('status')).toHaveTextContent('Execução: ociosa')
         fill('Invalid demo', '0')
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
         expect(screen.getByRole('alert')).toBeInTheDocument()
@@ -170,9 +284,9 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'category-moradia' } })
         fireEvent.click(screen.getByLabelText('Despesa recorrente'))
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
-        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('done'))
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída'))
         fireEvent.click(screen.getByRole('button', { name: 'Redefinir' }))
-        expect(screen.getByRole('status')).toHaveTextContent('idle')
+        expect(screen.getByRole('status')).toHaveTextContent('Execução: ociosa')
         expect(screen.getByLabelText('Descrição')).toHaveValue('')
         expect(screen.getByLabelText('Valor')).toHaveValue('')
         expect(screen.getByLabelText('Categoria')).toHaveValue('category-mercado')
@@ -183,7 +297,7 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         expect(screen.queryByRole('button', { name: 'Tentar novamente' })).not.toBeInTheDocument()
         fill('Depois do reset')
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
-        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('done'))
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída'))
         expect(screen.getByRole('button', { name: 'Ver resultado: Depois do reset' })).toBeInTheDocument()
     })
 

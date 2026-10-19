@@ -33,6 +33,8 @@ export type InsightSource = {
     date: string
     amountCents: number
 }
+export type InsightProviderStatus = 'used' | 'unavailable' | 'failed' | 'not_configured'
+export type InsightProviderErrorCode = 'authentication' | 'rate_limit' | 'timeout' | 'invalid_response' | 'safety_rejection' | 'provider_error'
 export type RunResult = {
     runId: string
     completedAt: string
@@ -43,6 +45,9 @@ export type RunResult = {
     recurringCents: number
     categories: { name: Category; label: string; cents: number }[]
     payments: { name: Payment; cents: number }[]
+    pendingReviewCount?: number | null
+    insightProviderStatus?: InsightProviderStatus
+    insightProviderErrorCode?: InsightProviderErrorCode | null
     insight?: { title: string; text: string; sources: InsightSource[] }
 }
 export type RunStatus = { status: 'running' } | { status: 'done'; result: RunResult }
@@ -50,6 +55,7 @@ export type RunService = {
     startRun(input: ExpenseInput, requestId?: string): Promise<{ runId: string }>
     getRunStatus(runId: string): Promise<RunStatus>
     getCategories?(): Promise<CategoryOption[]>
+    getHistory?(): Promise<RunResult[]>
 }
 export type CompletedRun = RunResult & { requestId: string; submittedInput: ExpenseInput }
 export type WorkflowState = {
@@ -60,6 +66,7 @@ export type WorkflowState = {
 }
 export type WorkflowEvent =
     | { type: 'started'; runId: string }
+    | { type: 'restored'; results: RunResult[] }
     | { type: 'completed'; runId: string; result: RunResult; input: ExpenseInput }
     | { type: 'failed'; runId: string; message: string }
     | { type: 'cleared' }
@@ -71,6 +78,13 @@ export function workflowReducer(state: WorkflowState, event: WorkflowEvent): Wor
     switch (event.type) {
         case 'cleared':
             return initialState
+        case 'restored': {
+            const existing = new Set(state.history.map(result => result.runId))
+            const restored = event.results.filter(result => !existing.has(result.runId)).map(result => ({
+                ...result, requestId: result.runId, submittedInput: { ...result.input },
+            }))
+            return { ...state, history: [...state.history, ...restored] }
+        }
         case 'started':
             return state.phase === 'running' ? state : { ...state, phase: 'running', runId: event.runId, error: null }
         case 'completed':
@@ -107,7 +121,7 @@ export function validateInput(input: ExpenseInput, allowedCategories: readonly s
     if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0 || input.amountCents > 99_999_999) {
         throw new Error('Informe um valor positivo em reais.')
     }
-    if (!allowedCategories.includes(input.category) || !Object.hasOwn(payments, input.payment) || typeof input.recurring !== 'boolean') {
+    if ((input.category !== '' && !allowedCategories.includes(input.category)) || !Object.hasOwn(payments, input.payment) || typeof input.recurring !== 'boolean') {
         throw new Error('Confira categoria, pagamento e recorrencia.')
     }
     return { ...input, description }

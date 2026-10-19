@@ -17,11 +17,34 @@ from home_financial_backend.runtime.adapters import (
     CrewAIClassificationFallback,
     CrewAIInsightGenerator,
 )
+from home_financial_backend.runtime.provider import create_llm
 from home_financial_backend.services.classification import ClassificationService
 from home_financial_backend.services.dashboard import DashboardService
 from home_financial_backend.services.evaluation import EvaluationService
 from home_financial_backend.services.expenses import ExpenseService
 from home_financial_backend.services.insights import InsightsService
+from home_financial_backend.settings import Settings
+
+
+def test_copilot_provider_builds_without_a_token_or_external_request(monkeypatch) -> None:
+    monkeypatch.delenv("COPILOT_GITHUB_TOKEN", raising=False)
+    settings = Settings(
+        _env_file=None,
+        copilot_enabled=True,
+        copilot_model="account-supported-model",
+    )
+
+    llm = create_llm(settings)
+
+    assert llm is not None
+    assert llm.model == "account-supported-model"
+    assert llm.supports_function_calling() is False
+
+
+def test_copilot_provider_can_be_disabled() -> None:
+    settings = Settings(_env_file=None, copilot_enabled=False)
+
+    assert create_llm(settings) is None
 
 
 def test_insight_adapter_receives_only_aggregate_safe_context_and_opaque_sources(
@@ -113,6 +136,7 @@ def test_insights_reject_unsafe_or_ungrounded_generator_output_and_fallback() ->
     run, source_map = service.generate(DEMO_HOUSEHOLD.id, "2026-10")
 
     assert run.provider_status == "failed"
+    assert run.provider_error_code == "safety_rejection"
     assert run.safety_status == "fallback"
     assert "Você deve" not in run.cards[0].text
     assert run.cards[0].source_refs[0] in source_map
@@ -153,6 +177,7 @@ def test_insights_reject_non_portuguese_generator_output() -> None:
     run, _ = service.generate(DEMO_HOUSEHOLD.id, "2026-10")
 
     assert run.provider_status == "failed"
+    assert run.provider_error_code == "safety_rejection"
     assert run.safety_status == "fallback"
     assert "foi registrada 1 despesa" in run.cards[0].text
 
@@ -190,6 +215,7 @@ def test_insight_timeout_uses_deterministic_fallback() -> None:
     run, _ = service.generate(DEMO_HOUSEHOLD.id, "2026-10")
 
     assert run.provider_status == "failed"
+    assert run.provider_error_code == "timeout"
     assert run.safety_status == "fallback"
     assert "R$ 12,50" in run.cards[0].text
 
@@ -275,6 +301,56 @@ def test_classifier_prompt_uses_opaque_category_options_and_maps_result(monkeypa
     assert candidate.category_id == category.id
     assert observed["active_leaf_taxonomy"][0]["category_id"] != category.id
     assert category.id not in json.dumps(observed, ensure_ascii=False)
+
+
+def test_insight_crew_kickoff_failure_uses_fallback_and_reports_provider_failure(
+    monkeypatch,
+) -> None:
+    calls = []
+
+    class FailedCrew:
+        def kickoff(self, *, inputs):
+            calls.append(inputs)
+            raise AuthenticationError("secret API key rejected")
+
+    class AuthenticationError(Exception):
+        pass
+
+    monkeypatch.setattr(adapters, "build_insight_crew", lambda llm: FailedCrew())
+    repositories = create_demo_repositories()
+    repositories.expenses.add(
+        Expense(
+            id="kickoff-failure-expense",
+            household_id=DEMO_HOUSEHOLD.id,
+            date=date(2026, 10, 1),
+            description="Conta mensal",
+            amount_cents=1250,
+            payment_method="debito",
+            category_id="category-contas-da-casa",
+            source="manual",
+        )
+    )
+    dashboard = DashboardService(
+        repositories.households,
+        repositories.categories,
+        repositories.expenses,
+    )
+    service = InsightsService(
+        dashboard,
+        repositories.categories,
+        repositories.expenses,
+        repositories.insight_runs,
+        generator=CrewAIInsightGenerator("test-llm"),
+    )
+
+    run, _ = service.generate(DEMO_HOUSEHOLD.id, "2026-10")
+
+    assert calls
+    assert calls[0]["monthly_summary"]["total_cents"] == 1250
+    assert run.provider_status == "failed"
+    assert run.provider_error_code == "authentication"
+    assert run.safety_status == "fallback"
+    assert "R$ 12,50" in run.cards[0].text
 
 
 def test_configured_golden_dataset_evaluation_is_deterministic_and_llm_free(tmp_path) -> None:

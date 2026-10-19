@@ -53,7 +53,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 - **Frontend**: responsive React + TypeScript web application built with Vite, because the PRD requires web-first local/demo usage and mobile-friendly access.
 - **Backend**: modular Python API built with FastAPI because `aamad.config.yml` declares Python as the primary language and `crewai` as the selected runtime.
 - **Persistence**: Week 3 runs against the Firestore Emulator behind backend repository interfaces; in-memory repositories support initial development and unit tests. No Firebase cloud project or Application Default Credentials (ADC) are required for this slice. Introduce the optional Cloud Firestore free-tier connection and ADC only after persistence, CSV/JSON export, and deletion pass integration tests against the emulator, followed by IAM/security review. The frontend never connects directly to Firestore. Keep the app local-only and use synthetic demo data until authentication and authorization are implemented.
-- **LLM integration**: OpenAI provider abstraction with `gpt-4o-mini` as the default model name, configurable by environment variable.
+- **LLM integration**: GitHub Copilot through its official Python SDK, called by a CrewAI-compatible adapter. The model is configurable; no OpenAI API or OpenAI-compatible Copilot endpoint is assumed.
 - **LLM interaction mode**: non-streaming for MVP insight generation; responses are small, structured, and easier to validate before display.
 - **Financial calculations**: never delegated to LLMs. Totals, percentages, comparisons, recurrence flags, and evaluation metrics are computed by deterministic services.
 
@@ -74,7 +74,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 | --- | --- | --- | --- |
 | QA-01 | Correctness | Given valid expenses, the API returns exact totals and category/payment breakdowns from deterministic services | 100% expected arithmetic in unit tests; PRD P0.7 |
 | QA-02 | Performance | Given 50 valid demo rows, import completes within the target on a typical local development machine | < 5 seconds; PRD Performance Requirements |
-| QA-03 | Availability / graceful degradation | When OpenAI is unavailable or times out, dashboard data remains available and insights use deterministic fallback | Fallback flow passes integration tests; PRD P0.8.5 |
+| QA-03 | Availability / graceful degradation | When GitHub Copilot is unavailable, unauthenticated, or times out, dashboard data remains available and insights use deterministic fallback | Fallback flow passes integration tests; PRD P0.8.5 |
 | QA-04 | Privacy | During every provider request, raw merchant/payee values and reversible alias mappings remain backend-only | Zero raw values or mappings in every provider payload; prompt-schema tests; PRD P0.8.6 and SAD privacy decision |
 | QA-05 | Modifiability | When persistence changes, application behavior remains behind repository interfaces | Domain services and tests do not depend on Firestore SDK types |
 | QA-06 | Usability / accessibility | Users can complete import, review, correction, and deletion workflows in pt-BR across desktop and mobile viewports | PRD interface requirements and WCAG 2.1 AA intent; validated in QA |
@@ -87,7 +87,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 | AD-02 | Start with emulator/in-memory repositories; defer Cloud Firestore free-tier connection | Preserves the PRD storage choice without making cloud credentials a Week 3 dependency | Emulator persistence/export/deletion tests must pass before cloud project, ADC/IAM setup, and security review; PRD Integration Requirements |
 | AD-03 | Keep validation, classification precedence, aggregation, persistence, export, deletion, and evaluation deterministic | Exact financial results and reproducible acceptance must not depend on model output | CrewAI agents receive bounded tasks; aggregation uses deterministic functions only; PRD P0.2-P0.7, P0.10 |
 | AD-04 | Use CrewAI sequentially only for ambiguous classification fallback and insight writing | Uses the selected runtime only where model reasoning is needed | process=sequential, memory=false, allow_delegation=false; classifier max_iter=1, insight max_iter<=2; typed task outputs; PRD Runtime & Agent Specifications |
-| AD-05 | Use OpenAI through a provider abstraction for optional classification and insight generation | Keeps provider choice configurable and allows deterministic fallback | Credentials remain server-side; provider calls are bounded and measured; PRD P0.4, P0.8 |
+| AD-05 | Use the official GitHub Copilot Python SDK through a custom CrewAI-compatible LLM adapter for optional classification and insight generation | Keeps CrewAI as the selected orchestration runtime while using Copilot account authentication and model access; the SDK is not a drop-in OpenAI/LiteLLM endpoint | Use the authenticated local Copilot CLI in development or an explicitly configured Copilot token for automation; keep credentials server-side, bound calls, and use deterministic fallbacks; Copilot usage is charged to the authenticated account/organization's AI Credits allowance; PRD P0.4, P0.8 |
 | AD-06 | Run the app/API locally and do not expose an unauthenticated hosted service | The MVP has one shared workspace and no identity or authorization boundary | Synthetic data only; Cloud Firestore remains backend-only; future hosting requires route-level access control; PRD P0.1, Security & Compliance |
 | AD-07 | Never send raw merchant/payee values, original descriptions, or reversible mappings to an LLM provider | Minimize disclosure while still supporting useful merchant-aware insights | Always build a separate allow-listed alias-safe projection; no raw-value opt-in or server gate exists |
 
@@ -107,7 +107,8 @@ flowchart LR
   SVC --> AG[Typed CrewAI tasks]
   SVC --> REPO[Repository interfaces]
   REPO --> FS[Firestore Emulator - Week 3]
-  AG --> LLM[OpenAI provider abstraction]
+  AG --> ADAPTER[CrewAI LLM adapter]
+  ADAPTER --> SDK[GitHub Copilot Python SDK]
 ```
 
 | Element | Responsibility | Boundary |
@@ -118,7 +119,7 @@ flowchart LR
 | Domain rules | Validate expense/category behavior and calculate exact summaries | Deterministic and independently testable |
 | CrewAI tasks | Unresolved categorization fallback and insight narration only | Typed, bounded inputs/outputs; no aggregation, evaluation, or persistence tools |
 | Repository interfaces | Read/write domain records | Isolate Firestore-specific code |
-| Provider abstraction | Call configured LLM and report provider failures/usage | Server-side secrets; deterministic fallback on failure |
+| CrewAI LLM adapter and Copilot SDK | Translate CrewAI generation requests into Copilot SDK sessions and return model text to CrewAI for typed-output validation | No Copilot tools or memory for these calls; server-side authentication; bounded request/session lifecycle; deterministic fallback on failure |
 
 **Rationale / analysis**: This separates user interaction, business rules, orchestration, and storage. The extra orchestration boundary is retained only where the PRD calls for agent-assisted classification and explanation; deterministic domain services remain authoritative.
 
@@ -135,7 +136,9 @@ sequenceDiagram
   participant Crew as CrewAI tasks
   participant Repo as Repositories
   participant DB as Firestore Emulator
-  participant LLM as OpenAI
+  participant Adapter as CrewAI LLM adapter
+  participant SDK as Copilot SDK
+  participant LLM as GitHub Copilot
   User->>UI: Import or enter expense
   UI->>API: Validated request
   API->>Svc: Execute use case
@@ -143,8 +146,12 @@ sequenceDiagram
   Repo->>DB: Read household-scoped records
   Svc->>Svc: Apply classification precedence; compute exact summaries
   Svc->>Crew: Ambiguous classification fallback or insight from summary
-  Crew->>LLM: Bounded prompt when required
-  LLM-->>Crew: Structured candidate output
+  Crew->>Adapter: Generation request with bounded prompt
+  Adapter->>SDK: Create isolated Copilot model session
+  SDK->>LLM: Authenticated model request
+  LLM-->>SDK: Model response
+  SDK-->>Adapter: Response text
+  Adapter-->>Crew: Model response for CrewAI schema validation
   Crew-->>Svc: Schema-validated result
   Svc->>Svc: Apply domain rules / deterministic totals
   Svc->>Repo: Persist result
@@ -156,9 +163,9 @@ sequenceDiagram
 | Element | Runtime behavior | Failure behavior |
 | --- | --- | --- |
 | API request | Validate, assign request ID, invoke one application use case | Return field-specific errors; do not partially accept structurally invalid files |
-| Classification service / task | Python service applies precedence; task calls LLM only for unresolved ambiguity | Use `outros` and flag review if no valid fallback exists |
+| Classification service / task | Python service applies precedence; task calls Copilot only for unresolved ambiguity | Use `outros` and flag review if no valid fallback exists |
 | Aggregation | Invoke deterministic aggregation functions | Return service error; never substitute LLM arithmetic |
-| Insight task | Use precomputed summaries and alias-safe context | Timeout/provider/schema failure yields deterministic fallback |
+| Insight task | Use precomputed summaries and alias-safe context | Copilot authentication, timeout, provider, or schema failure yields deterministic fallback |
 | Repository operation | Read/write records scoped to the demo household | Return a structured storage error; do not report unpersisted writes as successful |
 
 **Rationale / analysis**: The sequence keeps sensitive data and provider access in the backend. Persisted state changes only after validation; user-visible insight text is validated before display. Unit and integration tests exercise the deterministic and failure paths independently.
@@ -179,7 +186,8 @@ flowchart TB
     API --> Emulator
   end
   API -. after emulator gate and security review .-> Firestore[Optional Cloud Firestore via ADC/IAM]
-  API -. optional bounded request .-> OpenAI[OpenAI API]
+  API --> SDK[Copilot SDK adapter and managed runtime]
+  SDK -. optional bounded request .-> Copilot[GitHub Copilot service]
   subgraph CI[CI / test environment]
     Tests[Integration tests]
     TestEmulator[Isolated Firestore Emulator]
@@ -192,7 +200,8 @@ flowchart TB
 | Browser and Vite UI | Operator machine; loopback | No Firebase SDK credentials or direct Firestore access |
 | FastAPI | Operator machine; loopback | No public/LAN bind; synthetic demo data only |
 | Cloud Firestore | Optional later Firebase project, free-tier usage | Only after emulator persistence/export/deletion gate and security review; backend ADC identity with least-privilege IAM; client rules deny direct access |
-| OpenAI API | External provider, optional | Server-side key; only allow-listed alias-safe, bounded prompts |
+| Copilot SDK and runtime | Backend-side optional integration; authenticates via the operator's Copilot CLI session for local development or an explicit server-side Copilot token for automation | No browser credentials; outbound requests contain only allow-listed alias-safe, bounded prompts; usage is attributed to the authenticated account/organization |
+| GitHub Copilot service | External model service, optional | Subject to Copilot availability, model support, account/organization policy, and AI Credits allowance |
 | Firestore Emulator | Week 3 local runtime and isolated CI integration tests | Loopback only; synthetic data; no cloud credentials required |
 
 **Rationale / analysis**: Week 3 needs no cloud project or ADC: implement and test persistence, export, and deletion against the local emulator first. An in-memory adapter may unblock the first flow but does not replace the emulator acceptance gate. For a later cloud connection, the backend Admin SDK is governed by Google Cloud IAM and bypasses Firestore Security Rules; least-privilege IAM constrains backend access, while Security Rules deny browser/client access. Loopback is not a user-identity boundary, so synthetic data alone does not justify skipping the cloud security review. Hosted deployment remains deferred until every route has authentication and authorization.
@@ -235,6 +244,7 @@ flowchart TB
 | AR-04 | Classifier errors undermine trust | Incorrect summaries and insights | User correction, review threshold, explainable decisions, deterministic golden evaluation; QA owns acceptance |
 | AR-05 | LLM output is unsafe, ungrounded, or exposes merchant data | User harm or sensitive-data disclosure | Allow-listed alias-safe projection only, schema/grounding/safety checks, deterministic fallback; backend/security own controls |
 | AR-06 | Emulator behavior differs from later Cloud Firestore configuration | Integration tests pass while cloud permissions/configuration fail | Keep emulator tests; only if cloud mode is adopted, require a documented cloud-project smoke check with synthetic data before a cloud-backed demo; DevOps owns setup |
+| AR-07 | Copilot authentication expires, policy blocks the selected model, or the account/organization's AI Credits allowance is exhausted | Classification fallback or insight generation may become unavailable; unexpected usage may incur additional charges | Use the official SDK authentication path, keep credentials server-side, bound calls, report provider failures, retain deterministic fallbacks, and monitor Copilot usage; operator/Product Manager owns any spend threshold |
 
 ### PRD Traceability
 
@@ -293,6 +303,9 @@ Expected behavior:
 
 - Crew composition: only `categorization_agent` and `insight_agent`; services select the required task, not an unconditional two-agent pipeline.
 - Crew controls: `process: sequential` (bound to `Process.sequential`) and `memory: false`. Each agent has `allow_delegation: false`; categorization has `max_iter: 1`, insight has `max_iter: 2` at most. Persist learning only through domain repositories.
+- Copilot adapter boundary: use the official Python SDK with `mode="empty"`, no Copilot tools, and no Copilot memory; create an isolated model session for each CrewAI generation request. CrewAI remains the only task/agent orchestrator. The adapter returns response text to CrewAI, which continues to enforce the declared Pydantic output contracts; do not rely on the SDK's experimental structured-output feature as the application contract.
+- Copilot lifecycle and failures: the adapter must apply the configured timeout, close/disconnect each request session, and translate SDK authentication, model, and timeout failures into the existing bounded fallback behavior. The backend must not expose a Copilot session or credential to the frontend.
+- Copilot authentication: local development may use the operator's authenticated Copilot CLI identity; automation uses `COPILOT_GITHUB_TOKEN` supplied outside source control. `COPILOT_MODEL` is an application setting passed to the SDK and must name a model supported by the authenticated Copilot account and organization policy.
 - Agent/task declarations must reside in `config/agents.yaml` and `config/tasks.yaml`. The following contract is fixed now; Build implements it without adding aggregation/evaluation tasks:
 
 ```yaml
@@ -464,8 +477,8 @@ MVP authentication is disabled; there are no login controls, household selection
 
 Environment variables only; no secret values in code or artifacts:
 
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
+- `COPILOT_GITHUB_TOKEN` (optional for automation; local development may use the operator's authenticated Copilot CLI session)
+- `COPILOT_MODEL` (application setting selecting a model supported by the Copilot SDK)
 - `FIREBASE_PROJECT_ID` (local emulator project identifier in Week 3; actual cloud project only after the emulator gate)
 - `FIRESTORE_EMULATOR_HOST` (standard SDK variable; required for emulator-backed local runtime and integration tests)
 - `APP_ENV`
@@ -558,7 +571,7 @@ MVP performance targets from the PRD:
 - Import 50 demo expenses in under 5 seconds on a typical local development machine.
 - Render monthly dashboard in under 2 seconds after data is available.
 - Classify the 30-50 row golden dataset in under 30 seconds with LLM fallback disabled.
-- Generate monthly insights in under 20 seconds when OpenAI is configured and available.
+- Generate monthly insights in under 20 seconds when GitHub Copilot is configured and available.
 - Return deterministic fallback summaries when insight generation fails or exceeds timeout.
 
 Scalability assumptions:
@@ -630,7 +643,7 @@ Before production shared household use, the project must add:
 | EC-010 | Security | Committed secrets | 0 committed secrets detected | Gitleaks CI scan | PRD Security, `aamad.config.yml` |
 | EC-011 | Privacy | Raw merchant/payee values, original descriptions, or reversible alias mappings in any LLM prompt | 0 for every request | Prompt payload tests assert the allow-list schema and absence of raw values/mappings | SAD privacy decision; PRD P0.8.6, Security Requirements |
 | EC-012 | Data Control | Export and deletion controls | CSV export, JSON archive export, and confirmed deletion pass acceptance tests | Integration tests | PRD P0.9 |
-| EC-013 | Cost | Provider cost per successful monthly insight generation and monthly project spend | No pass/fail threshold set; tracking only until operator/Product Manager supplies a budget | Record provider usage metadata and estimated cost per run/month | PRD has no cost KPI; threshold is an operator decision |
+| EC-013 | Cost | Copilot AI Credits per successful monthly insight generation and monthly project spend | No pass/fail threshold set; tracking only until operator/Product Manager supplies a budget | Record available Copilot usage/credit metadata per run and account usage reports; do not assume a fixed cost per request | PRD has no cost KPI; threshold is an operator decision |
 
 ## 10. MVP Launch & Feedback Strategy
 
@@ -692,6 +705,9 @@ Post-demo iteration priorities:
 - `.cursor/templates/sad-template.md`
 - `.github/agents/system-arch.agent.md`
 - `aamad.config.yml`
+- Official GitHub Copilot SDK repository and [Python SDK documentation](https://github.com/github/copilot-sdk/tree/main/python)
+- Official [Copilot SDK authentication](https://github.com/github/copilot-sdk/blob/main/docs/auth/authenticate.md) and [backend services setup](https://github.com/github/copilot-sdk/blob/main/docs/setup/backend-services.md)
+- Official [GitHub Copilot model pricing and AI Credits](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)
 - Professor review supplied by the operator on 2026-10-06: two model-backed agents only, fixed CrewAI contracts, unconditional allow-list privacy, and emulator-first Week 3.
 
 ## Assumptions
@@ -701,6 +717,8 @@ Post-demo iteration priorities:
 - The frontend, backend, and emulator run locally on loopback. Week 3 requires no cloud project or ADC; cloud connection is deferred until the emulator persistence/export/deletion gate and security review pass. No public app deployment is configured while authentication and authorization are disabled, and only synthetic demo data is used.
 - The operator has not supplied an LLM/provider cost threshold. EC-013 is observational and is not a release gate until the operator or Product Manager approves a budget.
 - Non-streaming LLM insight generation is sufficient for MVP usability and simpler validation.
+- CrewAI remains the selected runtime; the Copilot SDK supplies model responses only. The implementation must provide a CrewAI-compatible adapter rather than treating Copilot as a direct OpenAI-compatible endpoint.
+- The local MVP's Copilot requests use the operator's authenticated Copilot account unless an explicit automation token is configured. Usage is attributed to that account/organization's Copilot AI Credits policy; the MVP does not implement per-household Copilot identities or billing.
 - Raw merchant/payee values and reversible mappings never leave backend services. Provider calls use only the allow-listed alias-safe projection; the backend may restore source labels only in the trusted local-user response.
 
 ## Open Questions
@@ -737,6 +755,14 @@ Post-demo iteration priorities:
 - Action: professor-review-alignment
 - Artifact: restricted Crew to ambiguous classification and insight writing; fixed YAML/Pydantic and execution contracts; removed raw-value opt-in; made Week 3 emulator-first with persistence/export/deletion gate before cloud/ADC
 - AAMAD_TARGET_RUNTIME: crewai (configured target)
+- Timestamp: 2026-10-19
+- Persona id: system-arch
+- Action: copilot-provider-architecture
+- Artifact: replaced the OpenAI provider decision with the official GitHub Copilot Python SDK behind a CrewAI-compatible adapter; retained CrewAI orchestration, privacy projection, typed output validation, deterministic fallbacks, and local-only scope; documented SDK authentication, AI Credits attribution, session/tool/memory boundaries, and operational risk
+- AAMAD_TARGET_RUNTIME: crewai (configured target)
+- Source: official GitHub Copilot SDK Python, authentication, backend deployment, and billing documentation
+- Model/temperature/max_tokens: no application LLM execution; model selected at runtime from the authenticated Copilot account; no provider request made during this documentation change
+- Prompt Trace: omitted; architecture-only revision with no financial records, secrets, or provider calls
 - Tool usage: targeted document reads/searches and apply_patch; focused consistency checks and aamad validation when available
 - Model/temperature/max_tokens: no application LLM execution; model identity and generation controls not exposed by the editor session
 - Prompt Trace: omitted; documentation-only revision with no financial records, secrets, or provider calls

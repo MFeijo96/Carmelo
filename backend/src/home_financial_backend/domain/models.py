@@ -144,6 +144,16 @@ class InsightCard(DomainModel):
     source_refs: tuple[str, ...] = Field(min_length=1)
 
 
+ProviderErrorCode = Literal[
+    "authentication",
+    "rate_limit",
+    "timeout",
+    "invalid_response",
+    "safety_rejection",
+    "provider_error",
+]
+
+
 class InsightRun(DomainModel):
     id: str = Field(min_length=1)
     household_id: str = Field(min_length=1)
@@ -153,6 +163,7 @@ class InsightRun(DomainModel):
     cards: tuple[InsightCard, ...]
     provider: str | None = None
     provider_status: Literal["used", "unavailable", "failed", "not_configured"]
+    provider_error_code: ProviderErrorCode | None = None
     safety_status: Literal["accepted", "fallback"]
     model: str | None = None
     latency_ms: int | None = Field(default=None, ge=0)

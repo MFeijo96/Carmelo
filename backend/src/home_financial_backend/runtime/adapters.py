@@ -11,7 +11,7 @@ from home_financial_backend.domain.models import (
 )
 from home_financial_backend.runtime.contracts import ClassificationCandidate
 from home_financial_backend.runtime.crew import build_classification_crew, build_insight_crew
-from home_financial_backend.runtime.usage import ProviderUsage, record_usage
+from home_financial_backend.runtime.provider import provider_request_scope
 
 
 class CrewAIClassificationFallback:
@@ -26,15 +26,16 @@ class CrewAIClassificationFallback:
         try:
             category_options = {token_urlsafe(12): category for category in active_leaf_taxonomy}
             crew = build_classification_crew(self._llm)
-            output = crew.kickoff(
-                inputs={
-                    "safe_context": safe_context.model_dump(mode="json"),
-                    "active_leaf_taxonomy": [
-                        {"category_id": token, "label": category.label}
-                        for token, category in category_options.items()
-                    ],
-                }
-            )
+            with provider_request_scope(self._llm, max_calls=1):
+                output = crew.kickoff(
+                    inputs={
+                        "safe_context": safe_context.model_dump(mode="json"),
+                        "active_leaf_taxonomy": [
+                            {"category_id": token, "label": category.label}
+                            for token, category in category_options.items()
+                        ],
+                    }
+                )
             candidate = getattr(output, "pydantic", None)
             if not isinstance(candidate, ClassificationCandidate):
                 raise FallbackUnavailable("Classifier did not return its required schema")
@@ -94,24 +95,17 @@ class CrewAIInsightGenerator:
                 }
                 for item in groups
             ]
-            output = crew.kickoff(
-                inputs={
-                    "monthly_summary": safe_summary,
-                    "safe_context": {
-                        "merchant_contexts": [
-                            context.model_dump(mode="json") for context in merchant_contexts
-                        ]
-                    },
-                    "source_groups": safe_groups,
-                }
-            )
-            token_usage = getattr(output, "token_usage", None)
-            if token_usage is not None:
-                record_usage(
-                    ProviderUsage(
-                        prompt_tokens=token_usage.prompt_tokens,
-                        completion_tokens=token_usage.completion_tokens,
-                    )
+            with provider_request_scope(self._llm, max_calls=2):
+                output = crew.kickoff(
+                    inputs={
+                        "monthly_summary": safe_summary,
+                        "safe_context": {
+                            "merchant_contexts": [
+                                context.model_dump(mode="json") for context in merchant_contexts
+                            ]
+                        },
+                        "source_groups": safe_groups,
+                    }
                 )
             card = getattr(output, "pydantic", None)
             if not isinstance(card, InsightCard):

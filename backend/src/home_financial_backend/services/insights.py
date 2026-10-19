@@ -7,13 +7,18 @@ from secrets import token_urlsafe
 from time import perf_counter
 from typing import Literal
 
-from home_financial_backend.domain.errors import FallbackUnavailable, InsightRejected
+from home_financial_backend.domain.errors import (
+    FallbackUnavailable,
+    InsightRejected,
+    PendingExpenseReview,
+)
 from home_financial_backend.domain.models import (
     Expense,
     InsightCard,
     InsightGroup,
     InsightRun,
     MonthlyDashboard,
+    ProviderErrorCode,
     SafeClassificationContext,
 )
 from home_financial_backend.domain.repositories import (
@@ -60,8 +65,6 @@ class InsightsService:
         generator: InsightGenerator | None = None,
         merchant_contexts: MerchantContextService | None = None,
         model_name: str | None = None,
-        input_usd_per_million_tokens: float | None = None,
-        output_usd_per_million_tokens: float | None = None,
     ) -> None:
         self._dashboard = dashboard
         self._categories = categories
@@ -70,8 +73,6 @@ class InsightsService:
         self._generator = generator
         self._merchant_contexts = merchant_contexts
         self._model_name = model_name
-        self._input_price = input_usd_per_million_tokens
-        self._output_price = output_usd_per_million_tokens
 
     def generate(
         self, household_id: str, month: str
@@ -82,6 +83,11 @@ class InsightsService:
             for expense in self._expenses.list_by_household(household_id)
             if expense.date.strftime("%Y-%m") == month
         )
+        pending_reviews = sum(expense.review_required for expense in month_expenses)
+        if pending_reviews:
+            raise PendingExpenseReview(
+                f"Revise as {pending_reviews} despesas pendentes antes de gerar os insights do mês."
+            )
         groups, sources = self._source_groups(household_id, month_expenses)
         summary_payload = summary.model_dump(mode="json")
         summary_hash = hashlib.sha256(
@@ -90,6 +96,7 @@ class InsightsService:
 
         provider_status: Literal["used", "unavailable", "failed", "not_configured"]
         provider_status = "not_configured"
+        provider_error_code: ProviderErrorCode | None = None
         safety_status: Literal["accepted", "fallback"] = "fallback"
         cards: tuple[InsightCard, ...] = ()
         latency_ms: int | None = None
@@ -109,8 +116,9 @@ class InsightsService:
                     cards = (generated,)
                     provider_status = "used"
                     safety_status = "accepted"
-                except (FallbackUnavailable, InsightRejected, ValueError, OSError):
+                except (FallbackUnavailable, InsightRejected, ValueError, OSError) as error:
                     provider_status = "failed"
+                    provider_error_code = self._provider_error_code(error)
                 latency_ms = round((perf_counter() - started) * 1000)
                 usage = take_usage()
             if not cards:
@@ -123,33 +131,49 @@ class InsightsService:
             summary_version="1.0",
             summary_hash=summary_hash,
             cards=cards,
-            provider="openai" if provider_status == "used" else None,
+            provider="copilot" if provider_status == "used" else None,
             provider_status=provider_status,
+            provider_error_code=provider_error_code,
             safety_status=safety_status,
             model=self._model_name if latency_ms is not None else None,
             latency_ms=latency_ms,
             prompt_tokens=usage.prompt_tokens if usage else None,
             completion_tokens=usage.completion_tokens if usage else None,
-            estimated_cost_usd=self._estimate_cost(usage),
+            estimated_cost_usd=None,
         )
         log_event(
             "insight_generated",
             provider_status=provider_status,
+            provider_error_code=provider_error_code,
             safety_status=safety_status,
             fallback_used=safety_status == "fallback",
             latency_ms=latency_ms,
             prompt_tokens=run.prompt_tokens,
             completion_tokens=run.completion_tokens,
             estimated_cost_usd=run.estimated_cost_usd,
+            copilot_nano_aiu=usage.copilot_nano_aiu if usage else None,
         )
         return self._insight_runs.add(run), sources
 
-    def _estimate_cost(self, usage: ProviderUsage | None) -> float | None:
-        if usage is None or self._input_price is None or self._output_price is None:
-            return None
-        return (
-            usage.prompt_tokens * self._input_price + usage.completion_tokens * self._output_price
-        ) / 1_000_000
+    @staticmethod
+    def _provider_error_code(error: Exception) -> ProviderErrorCode:
+        if isinstance(error, InsightRejected):
+            return "safety_rejection"
+
+        cause: BaseException | None = error
+        while cause is not None:
+            error_type = type(cause).__name__.lower()
+            if "auth" in error_type or "permission" in error_type:
+                return "authentication"
+            if "rate" in error_type or "quota" in error_type:
+                return "rate_limit"
+            if isinstance(cause, TimeoutError) or "timeout" in error_type:
+                return "timeout"
+            if isinstance(cause, ValueError) and not isinstance(cause, FallbackUnavailable):
+                return "invalid_response"
+            cause = cause.__cause__
+
+        return "provider_error"
 
     def _source_groups(
         self,

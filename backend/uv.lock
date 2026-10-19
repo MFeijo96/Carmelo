@@ -1035,6 +1035,19 @@ wheels = [
 ]
 
 [[package]]
+name = "github-copilot-sdk"
+version = "1.0.23"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "python-dateutil" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/16/26acac7e3cd90721fd0eba232daef5c23db4e518ee202f9388ecba949222/github_copilot_sdk-1.0.23-py3-none-any.whl", hash = "sha256:dd50c74550c42437c55185c2b862ca758548c66ddfe6b0ade1cb1be5bd05c7a7", size = 906679, upload-time = "2026-10-19T18:56:28.9Z" },
+]
+
+[[package]]
 name = "google-api-core"
 version = "2.42.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1279,6 +1292,7 @@ source = { editable = "." }
 dependencies = [
     { name = "crewai" },
     { name = "fastapi" },
+    { name = "github-copilot-sdk" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1300,6 +1314,7 @@ firestore = [
 requires-dist = [
     { name = "crewai", specifier = ">=0.100,<2" },
     { name = "fastapi", specifier = ">=0.115,<1" },
+    { name = "github-copilot-sdk", specifier = "==1.0.23" },
     { name = "google-cloud-firestore", marker = "extra == 'firestore'", specifier = ">=2.19,<3" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27,<1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10,<2" },

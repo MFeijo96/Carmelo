@@ -1,23 +1,37 @@
 import { useEffect, useReducer, useRef, useState, type FormEvent } from 'react'
-import { ArrowRight, Check, ChevronRight, CircleAlert, Clock3, House, LoaderCircle, Play, ReceiptText, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
-import { startRun, getRunStatus } from './services/runs'
-import { categoryOptions as defaultCategoryOptions, initialState, money, monthLabel, payments, parseAmount, validateInput, workflowReducer, type CategoryOption, type ExpenseInput, type RunResult, type RunService } from './workflow'
+import { ArrowRight, Check, ChevronRight, CircleAlert, Clock3, House, ListFilter, LoaderCircle, Play, ReceiptText, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { startRun, getRunStatus, getCategories, getHistory } from './services/runs'
+import { categoryOptions as defaultCategoryOptions, initialState, money, monthLabel, payments, parseAmount, validateInput, workflowReducer, type CategoryOption, type ExpenseInput, type InsightProviderErrorCode, type RunResult, type RunService } from './workflow'
 import WorkspaceTools from './WorkspaceTools'
 
-const defaultService: RunService = { startRun, getRunStatus }
+const defaultService: RunService = { startRun, getRunStatus, getCategories, getHistory }
 const paymentLabels = { ...payments, debito: 'Débito', credito: 'Crédito' }
 const statusPresentation = {
-    idle: { label: 'Crew: idle', color: '#606870' },
-    running: { label: 'Crew: running', color: '#1755a6' },
-    done: { label: 'Crew: done', color: '#14614d' },
-    error: { label: 'Crew: error', color: '#b42318' },
+    idle: { label: 'Execução: ociosa', color: '#606870' },
+    running: { label: 'Execução: em andamento', color: '#1755a6' },
+    done: { label: 'Execução: concluída', color: '#14614d' },
+    error: { label: 'Execução: erro', color: '#b42318' },
 } as const
+const insightProviderPresentation = {
+    used: 'Insights gerados com IA.',
+    unavailable: 'Provedor indisponível; resumo determinístico exibido.',
+    failed: 'Falha no provedor; resumo determinístico exibido.',
+    not_configured: 'IA não configurada; resumo determinístico exibido.',
+} as const
+const insightProviderErrorPresentation: Record<InsightProviderErrorCode, string> = {
+    authentication: 'Não foi possível autenticar no GitHub Copilot.',
+    rate_limit: 'O GitHub Copilot atingiu um limite de uso ou de créditos.',
+    timeout: 'O GitHub Copilot demorou além do tempo limite; resumo determinístico exibido.',
+    invalid_response: 'A resposta do GitHub Copilot não passou na validação; resumo determinístico exibido.',
+    safety_rejection: 'A resposta do GitHub Copilot foi rejeitada pelas verificações de segurança da aplicação.',
+    provider_error: 'Ocorreu uma falha no GitHub Copilot; resumo determinístico exibido.',
+}
 const localDate = () => {
     const date = new Date()
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-function Results({ result, categoryLabel }: { result: RunResult; categoryLabel: (id: string) => string }) {
+function Results({ result, categoryLabel, onReview }: { result: RunResult; categoryLabel: (id: string) => string; onReview: () => void }) {
     return <>
         <div className="result-heading"><div><span className="eyebrow">Resumo do mês</span><h3>{monthLabel(result.month)}</h3></div><span className="tag"><Check size={13} /> {statusPresentation.done.label}</span></div>
         <div className="metrics">
@@ -34,7 +48,12 @@ function Results({ result, categoryLabel }: { result: RunResult; categoryLabel: 
         </div>
         <div className="record"><ReceiptText size={19} /><div><span className="eyebrow">Despesa registrada</span><strong>{result.input.description}</strong><span>{categoryLabel(result.input.category)} · {paymentLabels[result.input.payment]}{result.input.recurring ? ' · Recorrente' : ''}</span></div><strong>{money(result.input.amountCents)}</strong></div>
         <p className="insight">{result.insight?.text ?? `${result.count} ${result.count === 1 ? 'despesa registrada' : 'despesas registradas'} em ${monthLabel(result.month)}, totalizando ${money(result.totalCents)}.`}</p>
+        {result.insightProviderErrorCode
+            ? <p className="insight-sources" role="status">{insightProviderErrorPresentation[result.insightProviderErrorCode]}</p>
+            : result.insightProviderStatus && <p className="insight-sources" role="status">{insightProviderPresentation[result.insightProviderStatus]}</p>}
         {result.insight?.sources.length ? <p className="insight-sources">Baseado em {result.insight.sources.length === 1 ? '1 despesa' : `${result.insight.sources.length} despesas`}, incluindo {result.insight.sources[0].categoryLabel}.</p> : null}
+        {(result.pendingReviewCount ?? 0) > 0 && <div className="review-prompt" role="status"><p>{result.pendingReviewCount} {result.pendingReviewCount === 1 ? 'despesa precisa' : 'despesas precisam'} de revisão antes dos insights do mês.</p><button className="action-button" type="button" onClick={onReview}><ListFilter size={16} />Revisar despesas</button></div>}
+        {result.pendingReviewCount === null && <div className="review-prompt" role="status"><p>Não foi possível confirmar as pendências. Os insights foram adiados.</p><button className="action-button" type="button" onClick={onReview}><ListFilter size={16} />Conferir despesas</button></div>}
         <p className="result-note">Totais calculados pelo backend local. Use dados fictícios; não constitui aconselhamento financeiro.</p>
     </>
 }
@@ -45,6 +64,12 @@ export default function App({ service = defaultService }: { service?: RunService
     const [formError, setFormError] = useState<string | null>(null)
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [lastUpdated, setLastUpdated] = useState(() => new Date())
+    const [reviewRequest, setReviewRequest] = useState(0)
+    const [historyLoading, setHistoryLoading] = useState(Boolean(service.getHistory))
+    const [historyError, setHistoryError] = useState<string | null>(null)
+    const [historyAttempt, setHistoryAttempt] = useState(0)
+    const historyGeneration = useRef(0)
+    const restoreSelection = useRef(true)
     const formRef = useRef<HTMLFormElement>(null)
     const resultHeadingRef = useRef<HTMLHeadingElement>(null)
     const lastInput = useRef<ExpenseInput | null>(null)
@@ -65,6 +90,26 @@ export default function App({ service = defaultService }: { service?: RunService
         }).catch(() => { })
         return () => { active = false }
     }, [service])
+
+    useEffect(() => {
+        if (!service.getHistory) return
+        let active = true
+        const generation = ++historyGeneration.current
+        setHistoryLoading(true)
+        setHistoryError(null)
+        void service.getHistory().then(results => {
+            if (!active || generation !== historyGeneration.current) return
+            dispatch({ type: 'restored', results })
+            if (restoreSelection.current && !lastRequestId.current && !locked.current) {
+                setSelectedId(current => current ?? results[0]?.runId ?? null)
+            }
+        }).catch(() => {
+            if (active && generation === historyGeneration.current) setHistoryError('Não foi possível carregar as despesas salvas.')
+        }).finally(() => {
+            if (active && generation === historyGeneration.current) setHistoryLoading(false)
+        })
+        return () => { active = false }
+    }, [service, historyAttempt])
 
     useEffect(() => {
         if (state.phase !== 'running' || !state.runId || !lastInput.current) return
@@ -107,6 +152,7 @@ export default function App({ service = defaultService }: { service?: RunService
 
     function run(input: ExpenseInput, requestId: string = crypto.randomUUID()) {
         if (locked.current) return
+        restoreSelection.current = false
         locked.current = true
         lastInput.current = { ...input }
         lastRequestId.current = requestId
@@ -148,6 +194,7 @@ export default function App({ service = defaultService }: { service?: RunService
 
     function reset() {
         if (locked.current) return
+        restoreSelection.current = false
         formRef.current?.reset()
         lastInput.current = null
         lastRequestId.current = null
@@ -176,7 +223,7 @@ export default function App({ service = defaultService }: { service?: RunService
                             <div className="field"><label htmlFor="date">Data</label><input id="date" name="date" type="date" defaultValue={localDate()} required /></div>
                             <div className="field"><label htmlFor="description">Descrição</label><input id="description" name="description" placeholder="Ex.: compras do mercado" maxLength={120} required /></div>
                             <div className="field"><label htmlFor="amount">Valor</label><div className="amount-input"><span>R$</span><input id="amount" name="amount" inputMode="decimal" placeholder="0,00" aria-describedby={error ? 'form-error' : undefined} required /></div></div>
-                            <div className="field"><label htmlFor="category">Categoria</label><select id="category" name="category" defaultValue="category-mercado">{categoryOptions.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></div>
+                            <div className="field"><label htmlFor="category">Categoria</label><select id="category" name="category" defaultValue="category-mercado"><option value="">Automatica</option>{categoryOptions.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></div>
                             <div className="field"><label htmlFor="payment">Forma de pagamento</label><select id="payment" name="payment" defaultValue="debito">{Object.keys(payments).map(payment => <option key={payment} value={payment}>{paymentLabels[payment as keyof typeof payments]}</option>)}</select></div>
                             <label className="recurring"><input name="recurring" type="checkbox" /><span>Despesa recorrente</span></label>
                         </fieldset>
@@ -189,10 +236,13 @@ export default function App({ service = defaultService }: { service?: RunService
                 </section>
                 <section className="results-section" aria-labelledby="results-title">
                     <div className="section-heading"><span className="section-number">02</span><h2 id="results-title" ref={resultHeadingRef} tabIndex={-1}>Resultados</h2><span className="muted-label">Backend local</span></div>
-                    {selected ? <Results result={selected} categoryLabel={categoryLabel} /> : <div className="empty-result"><span className={`empty-icon ${running ? 'is-running' : ''}`}>{running ? <LoaderCircle className="spin" size={32} /> : <ReceiptText size={34} strokeWidth={1.3} />}</span><h3>{running ? statusPresentation.running.label : 'Nenhum resultado por aqui'}</h3><p>{running ? 'Aguardando o resultado da execução.' : 'Nenhuma despesa registrada nesta sessão.'}</p><div className="empty-ledger" aria-hidden="true"><span /><span /><span /></div></div>}
+                    {selected ? <Results result={selected} categoryLabel={categoryLabel} onReview={() => setReviewRequest(value => value + 1)} /> : <div className="empty-result"><span className={`empty-icon ${running ? 'is-running' : ''}`}>{running ? <LoaderCircle className="spin" size={32} /> : <ReceiptText size={34} strokeWidth={1.3} />}</span><h3>{running ? statusPresentation.running.label : 'Nenhum resultado por aqui'}</h3><p>{running ? 'Aguardando o resultado da execução.' : 'Nenhuma despesa registrada nesta sessão.'}</p><div className="empty-ledger" aria-hidden="true"><span /><span /><span /></div></div>}
                 </section>
             </div>
-            {service === defaultService && <WorkspaceTools onDataDeleted={() => {
+            {service === defaultService && <WorkspaceTools reviewRequest={reviewRequest} onDataDeleted={() => {
+                historyGeneration.current += 1
+                setHistoryLoading(false)
+                setHistoryError(null)
                 lastInput.current = null
                 lastRequestId.current = null
                 setSelectedId(null)
@@ -200,7 +250,8 @@ export default function App({ service = defaultService }: { service?: RunService
             }} />}
             <section className="history-section" aria-labelledby="history-title">
                 <div className="section-heading"><span className="section-number">03</span><h2 id="history-title">Histórico</h2><span className="muted-label">{state.history.length} {state.history.length === 1 ? 'execução' : 'execuções'}</span></div>
-                {state.history.length === 0 ? <div className="history-empty"><Clock3 size={18} /><span>Nenhuma execução concluída nesta sessão.</span></div> : <ul className="history-list">{state.history.map(result => <li key={result.requestId}><button type="button" className={`history-row ${selectedId === result.requestId ? 'selected' : ''}`} disabled={running} aria-label={`Ver resultado: ${result.submittedInput.description}`} aria-pressed={selectedId === result.requestId} onClick={() => setSelectedId(result.requestId)}><span className="history-icon"><ReceiptText size={18} /></span><span className="history-description"><strong>{result.submittedInput.description}</strong><span>{monthLabel(result.submittedInput.date.slice(0, 7))}</span></span><span className="history-amount">{money(result.submittedInput.amountCents)}</span><span className="history-status"><Check size={13} /> {statusPresentation.done.label}</span><ChevronRight size={17} /></button></li>)}</ul>}
+                {historyError && <div className="error" role="alert"><p>{historyError}</p><button className="action-button" type="button" disabled={running} onClick={() => setHistoryAttempt(value => value + 1)}><RefreshCw size={16} />Tentar carregar novamente</button></div>}
+                {state.history.length === 0 ? <div className="history-empty"><Clock3 size={18} /><span>{historyLoading ? 'Carregando despesas salvas...' : historyError ? 'Histórico indisponível.' : 'Nenhuma despesa registrada.'}</span></div> : <ul className="history-list">{state.history.map(result => <li key={result.requestId}><button type="button" className={`history-row ${selectedId === result.requestId ? 'selected' : ''}`} disabled={running} aria-label={`Ver resultado: ${result.submittedInput.description}`} aria-pressed={selectedId === result.requestId} onClick={() => setSelectedId(result.requestId)}><span className="history-icon"><ReceiptText size={18} /></span><span className="history-description"><strong>{result.submittedInput.description}</strong><span>{monthLabel(result.submittedInput.date.slice(0, 7))}</span></span><span className="history-amount">{money(result.submittedInput.amountCents)}</span><span className="history-status"><Check size={13} /> {statusPresentation.done.label}</span><ChevronRight size={17} /></button></li>)}</ul>}
             </section>
             <footer><span>Home Financial</span><span>Dados fictícios · Sem conexão bancária</span></footer>
         </main>

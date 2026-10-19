@@ -1,7 +1,12 @@
 from uuid import uuid4
 
 from home_financial_backend.api.contracts import ExpenseCreateRequest
-from home_financial_backend.domain.errors import CategoryNotFound, HouseholdNotFound
+from home_financial_backend.domain.errors import (
+    CategoryNotFound,
+    DuplicateRecord,
+    HouseholdNotFound,
+    IdempotencyConflict,
+)
 from home_financial_backend.domain.models import (
     ClassificationDecision,
     Expense,
@@ -45,8 +50,15 @@ class ExpenseService:
         household_id: str,
         request: ExpenseCreateRequest,
         safe_context: SafeClassificationContext | None = None,
+        idempotency_key: str | None = None,
     ) -> Expense:
-        return self._create(household_id, request, source="manual", safe_context=safe_context)
+        return self._create(
+            household_id,
+            request,
+            source="manual",
+            safe_context=safe_context,
+            expense_id=idempotency_key,
+        )
 
     def create_imported(
         self,
@@ -63,10 +75,18 @@ class ExpenseService:
         *,
         source: ExpenseSource,
         safe_context: SafeClassificationContext | None,
+        expense_id: str | None = None,
     ) -> Expense:
         if self._households.get_by_id(household_id) is None:
             raise HouseholdNotFound("Household not found")
-        expense_id = uuid4().hex
+        idempotency_key = expense_id
+        if idempotency_key is not None:
+            existing = self._expenses.get_for_household(idempotency_key, household_id)
+            if existing is not None:
+                if self._matches_request(existing, request, source):
+                    return existing
+                raise IdempotencyConflict("A chave de idempotência já foi usada com outros dados.")
+        expense_id = idempotency_key or uuid4().hex
         decision = self._classifier.classify(
             ClassificationInput(
                 expense_id=expense_id,
@@ -97,7 +117,17 @@ class ExpenseService:
             created_at=now,
             updated_at=now,
         )
-        self._expenses.add(expense)
+        try:
+            self._expenses.add(expense)
+        except DuplicateRecord:
+            if idempotency_key is not None:
+                existing = self._expenses.get_for_household(expense.id, household_id)
+                if existing is not None and self._matches_request(existing, request, source):
+                    return existing
+                raise IdempotencyConflict(
+                    "A chave de idempotência já foi usada com outros dados."
+                )
+            raise
         self._decisions.add(decision)
         self._record_merchant(household_id, expense)
         log_event(
@@ -108,6 +138,24 @@ class ExpenseService:
             review_required=decision.review_required,
         )
         return expense
+
+    @staticmethod
+    def _matches_request(
+        expense: Expense,
+        request: ExpenseCreateRequest,
+        source: ExpenseSource,
+    ) -> bool:
+        return (
+            expense.source == source
+            and expense.date == request.date
+            and expense.description == request.description
+            and expense.amount_cents == request.amount_cents
+            and expense.payment_method == request.payment_method
+            and expense.recurring == request.recurring
+            and (request.category_id is None or expense.category_id == request.category_id)
+            and expense.merchant == request.merchant
+            and expense.notes == request.notes
+        )
 
     def _classification_context(
         self,

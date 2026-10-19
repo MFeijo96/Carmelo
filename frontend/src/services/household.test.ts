@@ -66,6 +66,26 @@ describe('household API service', () => {
         )
     })
 
+    it('requests a monthly insight and maps its source references', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(apiResponse(envelope({
+            insight_run: { provider_status: 'used', provider_error_code: null, cards: [{ title: 'Resumo do mês', text: 'As despesas foram registradas.', source_refs: ['source-1'] }] },
+            sources: { 'source-1': [{ expense_id: 'expense-1', category_label: 'Mercado', date: '2026-10-12', amount_cents: 12550 }] },
+        })))
+        vi.stubGlobal('fetch', fetchMock)
+
+        await expect(householdService.generateInsights('2026-10')).resolves.toEqual({
+            title: 'Resumo do mês',
+            text: 'As despesas foram registradas.',
+            sources: [{ expense_id: 'expense-1', category_label: 'Mercado', date: '2026-10-12', amount_cents: 12550 }],
+            providerStatus: 'used',
+            providerErrorCode: null,
+        })
+        expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8000/insights/monthly', expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({ month: '2026-10' }),
+        }))
+    })
+
     it('returns raw CSV export as a downloadable blob', async () => {
         const exportedBlob = { type: 'text/csv' } as Blob
         const fetchMock = vi.fn().mockResolvedValue({ ...apiResponse(null), blob: async () => exportedBlob })

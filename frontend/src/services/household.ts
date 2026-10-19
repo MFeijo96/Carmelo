@@ -1,3 +1,5 @@
+import type { InsightProviderErrorCode, InsightProviderStatus } from '../workflow'
+
 type ApiEnvelope<T> = {
     data: T | null
     errors: { code: string; message: string }[]
@@ -43,6 +45,14 @@ export type EvaluationReport = {
     confusion_details: { expected_category_id: string; predicted_category_id: string; count: number }[]
 }
 
+export type HouseholdInsight = {
+    title: string
+    text: string
+    sources: { expense_id: string; category_label: string; date: string; amount_cents: number }[]
+    providerStatus?: InsightProviderStatus
+    providerErrorCode?: InsightProviderErrorCode | null
+}
+
 export type HouseholdService = {
     listCategories(): Promise<HouseholdCategory[]>
     listExpenses(filters: {
@@ -56,6 +66,7 @@ export type HouseholdService = {
     }): Promise<{ expenses: HouseholdExpense[]; totalCount: number }>
     importCsv(file: File): Promise<ImportRun>
     correctCategory(expenseId: string, categoryId: string): Promise<HouseholdExpense>
+    generateInsights(month: string): Promise<HouseholdInsight>
     createCategory(label: string, parentCategoryId: string): Promise<HouseholdCategory>
     renameCategory(categoryId: string, label: string): Promise<HouseholdCategory>
     mergeCategories(sourceCategoryId: string, targetCategoryId: string): Promise<HouseholdCategory>
@@ -129,6 +140,29 @@ export const householdService: HouseholdService = {
             body: JSON.stringify({ category_id: categoryId }),
         })
         return data.expense
+    },
+    async generateInsights(month) {
+        const data = await request<{
+            insight_run: {
+                provider_status: InsightProviderStatus
+                provider_error_code: InsightProviderErrorCode | null
+                cards: { title: string; text: string; source_refs: string[] }[]
+            }
+            sources: Record<string, HouseholdInsight['sources']>
+        }>('/insights/monthly', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ month }),
+        })
+        const card = data.insight_run.cards[0]
+        if (!card) throw new Error('Não há despesas suficientes para gerar um insight deste mês.')
+        return {
+            title: card.title,
+            text: card.text,
+            sources: card.source_refs.flatMap(token => data.sources[token] ?? []),
+            providerStatus: data.insight_run.provider_status,
+            providerErrorCode: data.insight_run.provider_error_code,
+        }
     },
     async createCategory(label, parentCategoryId) {
         const data = await request<{ category: HouseholdCategory }>('/categories', {

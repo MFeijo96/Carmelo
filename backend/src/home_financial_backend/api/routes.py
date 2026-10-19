@@ -1,8 +1,10 @@
 from datetime import date
 from time import perf_counter
-from typing import Literal
+from typing import Annotated, Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Query, Request, Response, status
+from fastapi import APIRouter, Header, Query, Request, Response, status
+from starlette.concurrency import run_in_threadpool
 
 from home_financial_backend.api.contracts import (
     ArchiveResultData,
@@ -33,6 +35,7 @@ from home_financial_backend.services.categories import delete_demo_data
 
 router = APIRouter()
 MAX_CSV_BYTES = 2_000_000
+IdempotencyKey = Annotated[UUID | None, Header(alias="Idempotency-Key")]
 
 
 def _envelope(request: Request, data):
@@ -77,7 +80,8 @@ async def import_csv(
     except UnicodeDecodeError as error:
         raise CSVStructureError("O arquivo CSV deve estar codificado em UTF-8.") from error
     household_id = request.app.state.repositories.households.get_demo().id
-    result = request.app.state.csv_import_service.import_text(
+    result = await run_in_threadpool(
+        request.app.state.csv_import_service.import_text,
         household_id,
         content,
         source_name,
@@ -93,9 +97,14 @@ async def import_csv(
 def create_expense(
     body: ExpenseCreateRequest,
     request: Request,
+    idempotency_key: IdempotencyKey = None,
 ) -> ApiEnvelope[ExpenseResultData]:
     household_id = request.app.state.repositories.households.get_demo().id
-    expense = request.app.state.expense_service.create_manual(household_id, body)
+    expense = request.app.state.expense_service.create_manual(
+        household_id,
+        body,
+        idempotency_key=idempotency_key.hex if idempotency_key else None,
+    )
     return _envelope(request, ExpenseResultData(expense=expense))
 
 

@@ -1458,6 +1458,25 @@
             ],
             "title": "Provider"
           },
+          "provider_error_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "authentication",
+                  "rate_limit",
+                  "timeout",
+                  "invalid_response",
+                  "safety_rejection",
+                  "provider_error"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Error Code"
+          },
           "provider_status": {
             "enum": [
               "used",
@@ -2087,6 +2106,25 @@
       },
       "post": {
         "operationId": "create_expense_expenses_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Archive, Check, Download, FileUp, Gauge, ListFilter, Tags } from 'lucide-react'
-import { money, monthLabel } from './workflow'
-import { householdService, type EvaluationReport, type HouseholdCategory, type HouseholdExpense, type HouseholdService, type ImportRun } from './services/household'
+import { money, monthLabel, type InsightProviderErrorCode } from './workflow'
+import { householdService, type EvaluationReport, type HouseholdCategory, type HouseholdExpense, type HouseholdInsight, type HouseholdService, type ImportRun } from './services/household'
 
 const tabs = [
     { id: 'import', label: 'Importar', icon: FileUp },
@@ -13,6 +13,14 @@ const tabs = [
 
 type Tab = typeof tabs[number]['id']
 const currentMonth = () => new Date().toISOString().slice(0, 7)
+const providerErrorMessages: Record<InsightProviderErrorCode, string> = {
+    authentication: 'Não foi possível autenticar no GitHub Copilot.',
+    rate_limit: 'O GitHub Copilot atingiu um limite de uso ou de créditos.',
+    timeout: 'O GitHub Copilot demorou além do tempo limite; resumo determinístico exibido.',
+    invalid_response: 'A resposta do GitHub Copilot não passou na validação; resumo determinístico exibido.',
+    safety_rejection: 'A resposta do GitHub Copilot foi rejeitada pelas verificações de segurança da aplicação.',
+    provider_error: 'Ocorreu uma falha no GitHub Copilot; resumo determinístico exibido.',
+}
 
 function saveDownload(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob)
@@ -23,7 +31,7 @@ function saveDownload(blob: Blob, filename: string) {
     URL.revokeObjectURL(url)
 }
 
-export default function WorkspaceTools({ service = householdService, onDataDeleted }: { service?: HouseholdService; onDataDeleted?: () => void }) {
+export default function WorkspaceTools({ service = householdService, onDataDeleted, reviewRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; reviewRequest?: number }) {
     const [tab, setTab] = useState<Tab>('import')
     const [categories, setCategories] = useState<HouseholdCategory[]>([])
     const [expenses, setExpenses] = useState<HouseholdExpense[]>([])
@@ -35,9 +43,13 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
     const [sourceFilter, setSourceFilter] = useState('')
     const [offset, setOffset] = useState(0)
     const [totalCount, setTotalCount] = useState(0)
+    const [pendingReviewCount, setPendingReviewCount] = useState(0)
+    const [monthlyExpenseCount, setMonthlyExpenseCount] = useState(0)
+    const [reviewStatusLoading, setReviewStatusLoading] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [importRun, setImportRun] = useState<ImportRun | null>(null)
     const [evaluation, setEvaluation] = useState<EvaluationReport | null>(null)
+    const [monthlyInsight, setMonthlyInsight] = useState<HouseholdInsight | null>(null)
     const [householdId, setHouseholdId] = useState('')
     const [categoryLabel, setCategoryLabel] = useState('')
     const [parentCategoryId, setParentCategoryId] = useState('')
@@ -69,37 +81,62 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         return () => { active = false }
     }, [service])
 
+    useEffect(() => {
+        if (reviewRequest === 0) return
+        setTab('review')
+        setReviewOnly(true)
+        setCategoryFilter('')
+        setConfidenceFilter('')
+        setPaymentFilter('')
+        setSourceFilter('')
+        setOffset(0)
+    }, [reviewRequest])
+
     async function refreshExpenses() {
-        const result = await service.listExpenses({
-            month,
-            categoryId: categoryFilter || undefined,
-            confidenceMin: confidenceFilter ? Number(confidenceFilter) : undefined,
-            paymentMethod: paymentFilter || undefined,
-            source: sourceFilter || undefined,
-            reviewRequired: reviewOnly ? true : undefined,
-            offset,
-        })
+        const [result, pending, monthly] = await Promise.all([
+            service.listExpenses({
+                month,
+                categoryId: categoryFilter || undefined,
+                confidenceMin: confidenceFilter ? Number(confidenceFilter) : undefined,
+                paymentMethod: paymentFilter || undefined,
+                source: sourceFilter || undefined,
+                reviewRequired: reviewOnly ? true : undefined,
+                offset,
+            }),
+            service.listExpenses({ month, reviewRequired: true, offset: 0 }),
+            service.listExpenses({ month, offset: 0 }),
+        ])
         setExpenses(result.expenses)
         setTotalCount(result.totalCount)
+        setPendingReviewCount(pending.totalCount)
+        setMonthlyExpenseCount(monthly.totalCount)
     }
 
     useEffect(() => {
         if (tab !== 'review') return
         let active = true
-        void service.listExpenses({
-            month,
-            categoryId: categoryFilter || undefined,
-            confidenceMin: confidenceFilter ? Number(confidenceFilter) : undefined,
-            paymentMethod: paymentFilter || undefined,
-            source: sourceFilter || undefined,
-            reviewRequired: reviewOnly ? true : undefined,
-            offset,
-        }).then(result => {
+        setReviewStatusLoading(true)
+        void Promise.all([
+            service.listExpenses({
+                month,
+                categoryId: categoryFilter || undefined,
+                confidenceMin: confidenceFilter ? Number(confidenceFilter) : undefined,
+                paymentMethod: paymentFilter || undefined,
+                source: sourceFilter || undefined,
+                reviewRequired: reviewOnly ? true : undefined,
+                offset,
+            }),
+            service.listExpenses({ month, reviewRequired: true, offset: 0 }),
+            service.listExpenses({ month, offset: 0 }),
+        ]).then(([result, pending, monthly]) => {
             if (active) {
                 setExpenses(result.expenses)
                 setTotalCount(result.totalCount)
+                setPendingReviewCount(pending.totalCount)
+                setMonthlyExpenseCount(monthly.totalCount)
             }
         }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível listar as despesas.') })
+            .finally(() => { if (active) setReviewStatusLoading(false) })
         return () => { active = false }
     }, [categoryFilter, confidenceFilter, month, offset, paymentFilter, reviewOnly, service, sourceFilter, tab])
 
@@ -188,9 +225,16 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
     async function correctExpense(expense: HouseholdExpense, categoryId: string) {
         if (categoryId === expense.category_id) return
         await perform(async () => {
+            setMonthlyInsight(null)
             await service.correctCategory(expense.id, categoryId)
             await refreshExpenses()
         }, 'Categoria da despesa corrigida.')
+    }
+
+    function generateInsights() {
+        void perform(async () => {
+            setMonthlyInsight(await service.generateInsights(month))
+        }, 'Insights do mês gerados.')
     }
 
     return <section className="workspace-tools" aria-labelledby="tools-title">
@@ -210,7 +254,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
             {tab === 'review' && <div className="tool-content">
                 <h3>Revisar despesas</h3>
                 <div className="review-filters">
-                    <label>Mês<input type="month" value={month} onChange={event => { setMonth(event.target.value); setOffset(0) }} /></label>
+                    <label>Mês<input type="month" value={month} onChange={event => { setMonth(event.target.value); setOffset(0); setMonthlyInsight(null) }} /></label>
                     <label>Categoria<select value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setOffset(0) }}><option value="">Todas</option>{activeLeaves.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></label>
                     <label>Confiança mínima<select value={confidenceFilter} onChange={event => { setConfidenceFilter(event.target.value); setOffset(0) }}><option value="">Todas</option><option value="0.5">50%</option><option value="0.7">70%</option><option value="0.9">90%</option></select></label>
                     <label>Pagamento<select value={paymentFilter} onChange={event => { setPaymentFilter(event.target.value); setOffset(0) }}><option value="">Todos</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="credito">Crédito</option></select></label>
@@ -219,6 +263,11 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
                 </div>
                 {expenses.length === 0 ? <p className="tool-empty">Nenhuma despesa encontrada para {monthLabel(month)}.</p> : <div className="expense-table-wrap"><table className="expense-table"><thead><tr><th>Data e descrição</th><th>Valor</th><th>Categoria</th><th>Origem</th></tr></thead><tbody>{expenses.map(expense => <tr key={expense.id}><td><strong>{expense.description}</strong><span>{new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${expense.date}T12:00:00Z`))}{expense.review_required ? ' · Revisar' : ''}{expense.user_override ? ' · Corrigida' : ''}</span></td><td>{money(expense.amount_cents)}</td><td><select aria-label={`Categoria de ${expense.description}`} value={expense.category_id} disabled={busy} onChange={event => void correctExpense(expense, event.target.value)}>{activeLeaves.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></td><td>{expense.source}</td></tr>)}</tbody></table></div>}
                 <div className="expense-pagination"><span>{totalCount === 0 ? '0 despesas' : `${offset + 1}–${Math.min(offset + expenses.length, totalCount)} de ${totalCount}`}</span><button type="button" className="action-button" disabled={busy || offset === 0} onClick={() => setOffset(Math.max(0, offset - 100))}>Anterior</button><button type="button" className="action-button" disabled={busy || offset + expenses.length >= totalCount} onClick={() => setOffset(offset + 100)}>Próxima</button></div>
+                <div className="review-insight-action">
+                    <button type="button" className="action-button" disabled={busy || reviewStatusLoading || pendingReviewCount > 0 || monthlyExpenseCount === 0} onClick={generateInsights}><Gauge size={16} />Gerar insights do mês</button>
+                    {pendingReviewCount > 0 && <p role="status">Revise {pendingReviewCount} {pendingReviewCount === 1 ? 'despesa pendente' : 'despesas pendentes'} antes de gerar insights.</p>}
+                </div>
+                {monthlyInsight && <div className="review-insight" role="status"><h4>{monthlyInsight.title}</h4><p>{monthlyInsight.text}</p>{monthlyInsight.sources.length > 0 && <span>Baseado em {monthlyInsight.sources.length} {monthlyInsight.sources.length === 1 ? 'despesa' : 'despesas'}.</span>}{monthlyInsight.providerErrorCode && <p>{providerErrorMessages[monthlyInsight.providerErrorCode]}</p>}</div>}
             </div>}
             {tab === 'categories' && <div className="tool-content category-tools">
                 <h3>Taxonomia</h3>

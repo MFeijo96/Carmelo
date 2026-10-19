@@ -12,7 +12,7 @@ def test_health_uses_the_shared_response_envelope() -> None:
     assert response.json() == {
         "data": {
             "status": "ok",
-            "provider_configured": False,
+            "provider_configured": app.state.llm is not None,
             "persistence_mode": "memory",
         },
         "errors": [],

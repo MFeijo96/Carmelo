@@ -6,7 +6,8 @@ client = TestClient(app)
 DEMO_HOUSEHOLD_ID = "demo-household"
 
 
-def test_rest_workflow_routes_share_one_demo_household_and_envelope() -> None:
+def test_rest_workflow_routes_share_one_demo_household_and_envelope(monkeypatch) -> None:
+    monkeypatch.setattr(app.state.insight_service, "_generator", None)
     household_response = client.get("/households/demo")
     assert household_response.status_code == 200
     assert household_response.json()["data"]["household"]["id"] == DEMO_HOUSEHOLD_ID
@@ -120,6 +121,64 @@ def test_request_validation_returns_shared_pt_br_error_envelope() -> None:
     assert body["errors"][0]["code"] == "invalid_request"
     assert body["errors"][0]["message"] == "Os dados enviados são inválidos."
     assert body["meta"]["request_id"] == response.headers["X-Request-ID"]
+
+
+def test_create_expense_is_idempotent_and_rejects_key_reuse_with_changed_payload() -> None:
+    client.delete(f"/households/{DEMO_HOUSEHOLD_ID}/demo-data")
+    payload = {
+        "date": "2027-03-12",
+        "description": "Compra idempotente",
+        "amount_cents": 12550,
+        "payment_method": "credito",
+        "category_id": "category-mercado",
+    }
+    headers = {"Idempotency-Key": "0ac4014f-bd25-4dbe-8f29-4b6fddaf37f1"}
+
+    first = client.post("/expenses", json=payload, headers=headers)
+    retry = client.post("/expenses", json=payload, headers=headers)
+
+    assert first.status_code == retry.status_code == 201
+    assert first.json()["data"]["expense"]["id"] == retry.json()["data"]["expense"]["id"]
+    assert client.get("/expenses?month=2027-03").json()["data"]["total_count"] == 1
+
+    conflicting = client.post(
+        "/expenses",
+        json={**payload, "amount_cents": 12551},
+        headers=headers,
+    )
+    assert conflicting.status_code == 409
+    assert conflicting.json()["errors"][0]["code"] == "idempotency_conflict"
+    client.delete(f"/households/{DEMO_HOUSEHOLD_ID}/demo-data")
+
+
+def test_monthly_insights_require_pending_expenses_to_be_reviewed(monkeypatch) -> None:
+    monkeypatch.setattr(app.state.insight_service, "_generator", None)
+    client.delete(f"/households/{DEMO_HOUSEHOLD_ID}/demo-data")
+    created = client.post(
+        "/expenses",
+        json={
+            "date": "2027-02-12",
+            "description": "Compra sem categoria conhecida",
+            "amount_cents": 12550,
+            "payment_method": "credito",
+        },
+    )
+    assert created.status_code == 201
+    expense = created.json()["data"]["expense"]
+    assert expense["review_required"] is True
+
+    blocked = client.post("/insights/monthly", json={"month": "2027-02"})
+    assert blocked.status_code == 409
+    assert blocked.json()["errors"][0]["code"] == "pending_expense_review"
+
+    corrected = client.patch(
+        f"/expenses/{expense['id']}/category",
+        json={"category_id": "category-mercado"},
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["data"]["expense"]["review_required"] is False
+    assert client.post("/insights/monthly", json={"month": "2027-02"}).status_code == 200
+    client.delete(f"/households/{DEMO_HOUSEHOLD_ID}/demo-data")
 
 
 def test_evaluation_route_runs_the_deterministic_golden_dataset() -> None:

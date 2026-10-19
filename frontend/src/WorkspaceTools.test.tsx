@@ -18,11 +18,18 @@ const expense: HouseholdExpense = {
 }
 
 function serviceMock(): HouseholdService {
+    let pendingReview = true
     return {
         listCategories: vi.fn(async () => categories),
-        listExpenses: vi.fn(async () => ({ expenses: [expense], totalCount: 1 })),
+        listExpenses: vi.fn(async filters => filters.reviewRequired
+            ? { expenses: pendingReview ? [expense] : [], totalCount: pendingReview ? 1 : 0 }
+            : { expenses: [expense], totalCount: 1 }),
         importCsv: vi.fn(async () => ({ id: 'import-1', total_rows: 2, imported_rows: 1, rejected_rows: 1, row_errors: [{ row: 3, field: 'valor', code: 'invalid', message: 'Informe um valor BRL.', value: 'abc' }], status: 'completed' })),
-        correctCategory: vi.fn(async (_id, categoryId) => ({ ...expense, category_id: categoryId })),
+        correctCategory: vi.fn(async (_id, categoryId) => { pendingReview = false; return { ...expense, category_id: categoryId, review_required: false, user_override: true } }),
+        generateInsights: vi.fn(async () => ({
+            title: 'Resumo do mês', text: 'As despesas foram registradas.', sources: [],
+            providerStatus: 'failed' as const, providerErrorCode: 'rate_limit' as const,
+        })),
         createCategory: vi.fn(async label => ({ id: 'created', label, parent_category_id: 'food', is_active: true, is_standard: false })),
         renameCategory: vi.fn(async (id, label) => ({ ...categories[3], id, label })),
         mergeCategories: vi.fn(async () => categories[2]),
@@ -35,6 +42,16 @@ function serviceMock(): HouseholdService {
 }
 
 describe('household operations', () => {
+    it('opens the pending-review tab when requested from the result screen', async () => {
+        const service = serviceMock()
+        const { rerender } = render(<WorkspaceTools service={service} reviewRequest={0} />)
+
+        rerender(<WorkspaceTools service={service} reviewRequest={1} />)
+
+        expect(screen.getByRole('tab', { name: 'Despesas' })).toHaveAttribute('aria-selected', 'true')
+        expect(screen.getByLabelText('Pendentes de revisão')).toBeChecked()
+    })
+
     it('shows CSV row errors and accepted/rejected counts', async () => {
         const user = userEvent.setup()
         const service = serviceMock()
@@ -59,7 +76,7 @@ describe('household operations', () => {
         await user.selectOptions(screen.getByLabelText('Pagamento'), 'credito')
         await user.selectOptions(screen.getByLabelText('Origem'), 'csv')
         await user.click(screen.getByLabelText('Pendentes de revisão'))
-        await waitFor(() => expect(service.listExpenses).toHaveBeenLastCalledWith({
+        await waitFor(() => expect(service.listExpenses).toHaveBeenCalledWith({
             month: expect.any(String),
             categoryId: 'other',
             confidenceMin: 0.7,
@@ -72,6 +89,13 @@ describe('household operations', () => {
 
         await waitFor(() => expect(service.correctCategory).toHaveBeenCalledWith('expense-1', 'other'))
         expect(service.listExpenses).toHaveBeenCalledWith(expect.objectContaining({ month: expect.any(String) }))
+        expect(await screen.findByRole('button', { name: 'Gerar insights do mês' })).toBeEnabled()
+        expect(screen.queryByText(/Revise 1 despesa pendente/)).not.toBeInTheDocument()
+        expect(service.generateInsights).not.toHaveBeenCalled()
+        await user.click(screen.getByRole('button', { name: 'Gerar insights do mês' }))
+        expect(await screen.findByText('As despesas foram registradas.')).toBeInTheDocument()
+        expect(screen.getByText('O GitHub Copilot atingiu um limite de uso ou de créditos.')).toBeInTheDocument()
+        expect(service.generateInsights).toHaveBeenCalledOnce()
     })
 
     it('creates a child category under a top-level category', async () => {

@@ -571,6 +571,43 @@ h4 {
     padding: 18px 0 10px;
 }
 
+.review-prompt,
+.review-insight-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+.review-prompt p,
+.review-insight-action p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.review-insight {
+    border-top: 1px solid var(--line);
+    margin-top: 18px;
+    padding-top: 16px;
+}
+
+.review-insight h4 {
+    margin-bottom: 6px;
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.review-insight p,
+.review-insight span {
+    color: #374a3f;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
 .result-note {
     color: var(--muted);
     font-size: 11px;
@@ -694,7 +731,7 @@ h4 {
 
 .action-button:disabled {
     opacity: .55;
-    cursor: wait;
+    cursor: not-allowed;
 }
 
 .danger-button {

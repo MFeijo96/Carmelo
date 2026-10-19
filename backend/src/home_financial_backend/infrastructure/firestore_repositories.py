@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import Any, Generic, TypeVar
 
+from google.api_core.exceptions import AlreadyExists
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from pydantic import BaseModel
@@ -218,9 +219,10 @@ class FirestoreExpenseRepository:
             raise HouseholdNotFound("Household not found")
         self._categories.require_active_leaf(expense.household_id, expense.category_id)
         reference = self._collection.document(expense.id)
-        if reference.get().exists:
-            raise DuplicateRecord("Expense identifier already exists")
-        reference.set(_model_data(expense))
+        try:
+            reference.create(_model_data(expense))
+        except AlreadyExists as error:
+            raise DuplicateRecord("Expense identifier already exists") from error
         return expense
 
     def update(self, expense: Expense) -> Expense:

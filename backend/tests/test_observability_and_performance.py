@@ -11,6 +11,7 @@ from home_financial_backend.domain.seed import DEMO_HOUSEHOLD
 from home_financial_backend.infrastructure.memory_repositories import create_demo_repositories
 from home_financial_backend.runtime import adapters
 from home_financial_backend.runtime.adapters import CrewAIInsightGenerator
+from home_financial_backend.runtime.usage import ProviderUsage, record_usage
 from home_financial_backend.services.classification import ClassificationService
 from home_financial_backend.services.csv_import import CSVImportService
 from home_financial_backend.services.dashboard import DashboardService
@@ -101,11 +102,12 @@ def test_golden_dataset_classification_meets_latency_target() -> None:
     assert elapsed < 30
 
 
-def test_insight_run_records_model_latency_usage_and_estimated_cost(
+def test_insight_run_records_copilot_usage_without_inventing_a_usd_cost(
     monkeypatch, captured_events
 ) -> None:
     class FakeCrew:
         def kickoff(self, *, inputs):
+            record_usage(ProviderUsage(1000, 200, 123.0))
             return SimpleNamespace(
                 pydantic=InsightCard(
                     title="Resumo",
@@ -135,9 +137,7 @@ def test_insight_run_records_model_latency_usage_and_estimated_cost(
         repositories.expenses,
         repositories.insight_runs,
         generator=CrewAIInsightGenerator("test-llm"),
-        model_name="gpt-4o-mini",
-        input_usd_per_million_tokens=0.15,
-        output_usd_per_million_tokens=0.60,
+        model_name="account-supported-model",
     )
 
     started = perf_counter()
@@ -145,14 +145,16 @@ def test_insight_run_records_model_latency_usage_and_estimated_cost(
     elapsed = perf_counter() - started
 
     assert run.provider_status == "used"
-    assert run.model == "gpt-4o-mini"
+    assert run.provider == "copilot"
+    assert run.model == "account-supported-model"
     assert run.latency_ms is not None and run.latency_ms >= 0
     assert (run.prompt_tokens, run.completion_tokens) == (1000, 200)
-    assert run.estimated_cost_usd == pytest.approx(0.00027)
+    assert run.estimated_cost_usd is None
     assert elapsed < 20
     logged = [event for event in events(captured_events) if event["event"] == "insight_generated"]
     assert logged[0]["fallback_used"] is False
     assert logged[0]["prompt_tokens"] == 1000
+    assert logged[0]["copilot_nano_aiu"] == 123.0
 
 
 def test_insight_without_provider_leaves_usage_fields_empty() -> None:
