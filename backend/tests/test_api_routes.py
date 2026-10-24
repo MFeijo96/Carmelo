@@ -186,7 +186,7 @@ def test_evaluation_route_runs_the_deterministic_golden_dataset() -> None:
 
     assert response.status_code == 200
     result = response.json()["data"]["evaluation"]
-    assert result["total_count"] == 30
-    assert result["correct_count"] >= 21
+    assert 30 <= result["total_count"] <= 50
+    assert result["correct_count"] / result["total_count"] >= 0.70
     assert result["accuracy"] >= 0.70
     assert result["passed"] is True

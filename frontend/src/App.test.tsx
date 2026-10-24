@@ -35,11 +35,11 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         const result = { ...stored.result, input: { ...stored.result.input, description: 'Despesa persistida' } }
         const service: RunService = { ...stub, getHistory: vi.fn(async () => [result]), startRun: vi.fn(stub.startRun) }
         const first = render(<App service={service} />)
-        expect(await screen.findByRole('button', { name: 'Ver resultado: Despesa persistida' })).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: 'Mostrar detalhes: Despesa persistida' })).toBeInTheDocument()
         expect(screen.getByRole('region', { name: 'Resultados' })).toHaveTextContent('Despesa persistida')
         first.unmount()
         render(<App service={service} />)
-        expect(await screen.findByRole('button', { name: 'Ver resultado: Despesa persistida' })).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: 'Mostrar detalhes: Despesa persistida' })).toBeInTheDocument()
         expect(service.getHistory).toHaveBeenCalledTimes(2)
         expect(service.startRun).not.toHaveBeenCalled()
     })
@@ -138,7 +138,7 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         expect(banner.querySelector('time')).toHaveAttribute('datetime', '2026-10-09T15:00:03.000Z')
     })
 
-    it('runs once, disables submission, completes, and selects immutable history', async () => {
+    it('runs once, disables submission, completes, and expands history details', async () => {
         vi.useFakeTimers()
         const stub = createRunService(1200)
         const service = { ...stub, startRun: vi.fn(stub.startRun) }
@@ -154,7 +154,7 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         expect(service.startRun).toHaveBeenCalledTimes(1)
         await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
         expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída')
-        expect(screen.getByRole('button', { name: 'Ver resultado: Mercado demo' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('button', { name: 'Mostrar detalhes: Mercado demo' })).toHaveAttribute('aria-expanded', 'false')
         expect(screen.getByLabelText('Descrição')).toHaveValue('')
         expect(screen.getByLabelText('Categoria')).toHaveValue('category-mercado')
         expect(screen.getByRole('heading', { name: 'Resultados' })).toHaveFocus()
@@ -166,12 +166,18 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         const results = screen.getByRole('region', { name: 'Resultados' })
         expect(within(results).getByText('Total registrado').parentElement).toHaveTextContent('R$ 123,45')
         expect(within(results).getByText('Despesas').parentElement).toHaveTextContent('01')
-        expect(screen.getByRole('button', { name: 'Ver resultado: Aluguel demo' })).toHaveAttribute('aria-pressed', 'true')
-        fireEvent.click(screen.getByRole('button', { name: 'Ver resultado: Mercado demo' }))
-        expect(within(results).queryByText('R$ 1.123,45')).not.toBeInTheDocument()
-        expect(within(results).getByText('01')).toBeInTheDocument()
+        const historyRow = screen.getByRole('button', { name: 'Mostrar detalhes: Mercado demo' })
+        fireEvent.click(historyRow)
+        expect(screen.getByRole('button', { name: 'Ocultar detalhes: Mercado demo' })).toHaveAttribute('aria-expanded', 'true')
+        const details = screen.getByRole('group', { name: 'Detalhes de Mercado demo' })
+        expect(within(details).getByRole('heading', { name: 'Detalhes da despesa' })).toBeInTheDocument()
+        expect(within(details).getByText('Mercado')).toBeInTheDocument()
+        expect(within(details).getByText('Débito')).toBeInTheDocument()
+        expect(within(details).getByText('Não')).toBeInTheDocument()
+        expect(within(results).getByText('Aluguel demo')).toBeInTheDocument()
         expect(screen.getByLabelText('Categoria')).toHaveValue('category-moradia')
-        expect(screen.getByRole('button', { name: 'Ver resultado: Mercado demo' })).toHaveAttribute('aria-pressed', 'true')
+        fireEvent.click(screen.getByRole('button', { name: 'Ocultar detalhes: Mercado demo' }))
+        expect(screen.getByRole('button', { name: 'Mostrar detalhes: Mercado demo' })).toHaveAttribute('aria-expanded', 'false')
     })
 
     it('rejects invalid BRL without starting a run', () => {
@@ -269,7 +275,7 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         fill()
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
         expect(await screen.findByRole('alert')).toHaveTextContent('Status indisponível')
-        expect(screen.queryByRole('button', { name: 'Ver resultado: Mercado demo' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Mostrar detalhes: Mercado demo' })).not.toBeInTheDocument()
     })
 
     it('resets errors, form defaults and results to idle while retaining history', async () => {
@@ -293,12 +299,12 @@ describe('form/run/results/history integration (AC-P0.3, P0.7 prototype)', () =>
         expect(screen.getByLabelText('Despesa recorrente')).not.toBeChecked()
         expect(screen.getByLabelText('Descrição')).toHaveFocus()
         expect(screen.getByRole('heading', { name: 'Nenhum resultado por aqui' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Ver resultado: Mercado demo' })).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.getByRole('button', { name: 'Mostrar detalhes: Mercado demo' })).toHaveAttribute('aria-expanded', 'false')
         expect(screen.queryByRole('button', { name: 'Tentar novamente' })).not.toBeInTheDocument()
         fill('Depois do reset')
         fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
         await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Execução: concluída'))
-        expect(screen.getByRole('button', { name: 'Ver resultado: Depois do reset' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Mostrar detalhes: Depois do reset' })).toBeInTheDocument()
     })
 
     it('stops polling on unmount', async () => {

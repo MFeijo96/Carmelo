@@ -131,6 +131,18 @@ def test_most_specific_deterministic_rule_wins_over_shorter_rule() -> None:
     assert expense.review_required is False
 
 
+def test_entertainment_rule_targets_an_active_leaf_category() -> None:
+    _, _, expense_service = make_services()
+
+    expense = expense_service.create_manual(
+        DEMO_HOUSEHOLD_ID,
+        make_request("Ingresso de show"),
+    )
+
+    assert expense.category_id == "category-entretenimento"
+    assert expense.review_required is False
+
+
 def test_exact_household_correction_precedes_deterministic_rule() -> None:
     repositories, _, expense_service = make_services()
     original = expense_service.create_manual(

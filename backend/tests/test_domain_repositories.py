@@ -37,7 +37,7 @@ def test_demo_repositories_seed_one_household_and_standard_taxonomy() -> None:
 
     assert repositories.households.get_demo().id == DEMO_HOUSEHOLD_ID
     seeded = repositories.categories.list_by_household(DEMO_HOUSEHOLD_ID)
-    assert len(seeded) == 15
+    assert len(seeded) == 16
     assert repositories.expenses.list_by_household(DEMO_HOUSEHOLD_ID) == ()
     assert repositories.categories.resolve_active_leaf(DEMO_HOUSEHOLD_ID, "  MERCÁDO ").id == (
         "category-mercado"

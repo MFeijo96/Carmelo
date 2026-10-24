@@ -73,7 +73,10 @@ DEFAULT_RULES = (
     CategoryRule("category-pets", ("veterinario", "racao", "pet shop")),
     CategoryRule("category-impostos-taxas", ("ipva", "iptu", "taxa municipal")),
     CategoryRule("category-cuidados-pessoais", ("cabeleireiro", "barbearia", "higiene pessoal")),
-    CategoryRule("category-lazer", ("cinema", "parque de diversoes", "ingresso de show")),
+    CategoryRule(
+        "category-entretenimento",
+        ("cinema", "parque de diversoes", "ingresso de show"),
+    ),
 )
 
 FallbackClassifier = Callable[

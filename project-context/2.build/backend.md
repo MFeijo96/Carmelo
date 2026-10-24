@@ -104,11 +104,11 @@ Completion means the application no longer selects OpenAI or Ollama/Llama, the C
 - Money is represented as positive integer BRL cents; payment method and recurrence are separate fields. Persisted expenses require a category ID and source.
 - API request/result schemas are defined for manual expense input, category changes, expense/category lists, import results, monthly requests, insight results, and evaluation.
 - Protocols and in-memory/Firestore Emulator adapters cover household, category, expense, classification-decision, import-run, insight-run, evaluation-run, and merchant-context access. Writes are household-scoped and expense categories must be active leaves.
-- The seeded demo workspace has one household and the twelve PRD top-level categories, plus `Mercado`, `Restaurantes`, and `Assinaturas` as the specified child leaves. New expense storage starts empty.
+- The seeded demo workspace has one household and the twelve PRD top-level categories, plus `Mercado`, `Restaurantes`, and `Assinaturas` as specified child leaves and `Entretenimento` under `Lazer`. New expense storage starts empty.
 - The FastAPI app selects memory or Firestore Emulator repositories from `PERSISTENCE_MODE`, then constructs expense/classification/CSV and other services on application state.
 - Manual expense creation, category correction history, Portuguese CSV parsing/validation, deterministic monthly aggregation, exports/deletion, and classification are implemented as services. CSV row errors preserve valid rows; malformed structure rejects before writes. Global correction frequency is used only to break a household-frequency tie.
 - CrewAI classification receives only a stable fictitious merchant alias, a business-context description, category hints, aggregate recurrence count, and active-leaf labels paired with per-call opaque option tokens; the adapter maps the selected token back to a category ID locally. Insight tasks receive deterministic aggregate summaries, the same allow-listed merchant projection for merchants in the selected month, and opaque source-group tokens. `MerchantContextService` owns the reversible alias map (`merchant_contexts`, `llm_data_maps`), which is backend-only, excluded from exports, and removed by demo-data deletion. Provider output is schema/source/safety checked; invalid, ungrounded, unsafe, or failed calls use deterministic fallback.
-- Golden evaluation loads a committed 30-record synthetic JSON dataset (or path override), runs with LLM fallback disabled and isolated correction history, calculates exact-label accuracy/confusion, and stores the report. The measured result is 30/30 (100%).
+- Golden evaluation loads a committed 50-record synthetic JSON dataset v2 (or path override), runs with LLM fallback disabled and isolated correction history, calculates exact-label accuracy/confusion, and stores the report. The measured result is 50/50 (100%); regression tests cover threshold boundaries, repeatability, invalid labels/versions, and fallback isolation.
 - Firestore collections are top-level and household-filtered. Emulator mode requires the optional Firestore SDK extra, `FIRESTORE_EMULATOR_HOST`, and `FIREBASE_PROJECT_ID`; it rejects non-loopback hosts and cannot silently fall back to cloud access (verified: startup raises without the host). The emulator gate passed on 2026-10-12 against Firestore Emulator 1.22.0: CSV import-to-dashboard, repository persistence, CSV/JSON export, deletion, and merchant alias persistence/exclusion/deletion tests all pass, and an HTTP smoke run in emulator mode confirmed valid rows import while an invalid row is rejected.
 - In-memory persistence remains the default. Cloud Firestore/ADC remains disabled until an independent security review approves it.
 - `backend/openapi.json` is the committed contract snapshot. A backend test fails on drift from the running API and a frontend test fails when the UI calls an operation absent from it; both were mutation-checked.
@@ -127,6 +127,15 @@ From `backend/`, use Python 3.11+ and `uv sync --extra dev` to install from `uv.
 - No independent security review has been performed; Cloud Firestore/ADC and any hosted use remain out of scope until one is.
 
 ## Audit
+
+### 2026-10-23: QA Evaluation and Browser Flow Follow-up
+
+- Persona: qa-eng; action: implement-qa-evaluation-follow-up. AAMAD_TARGET_RUNTIME: `crewai`.
+- Added the `Entretenimento` standard leaf under `Lazer` and corrected the entertainment classification rule to target an active leaf.
+- Expanded the versioned synthetic golden dataset to 50 records; added evaluation boundary, repeatability, invalid category/version, and no-fallback checks.
+- Verification: backend 92 passed/0 skipped with Firestore Emulator 1.22.0, Ruff lint and mypy passed, frontend 57 passed and build passed, AAMAD passed. Touched-file formatting passed; global format check retains an unrelated existing difference in `services/expenses.py`.
+- AMP tracing is enabled only in the ignored local `.env`. CrewAI device login's trace grant returned HTTP 401, then one synthetic trace using `CREWAI_USER_PAT` and a fake local LLM was accepted; no model-provider call was made.
+- Browser smoke used in-memory persistence, synthetic data, and disabled provider calls. Emulator, dependency audit, independent security/accessibility review remain open.
 
 ### 2026-10-19: Operator Copilot Configuration
 

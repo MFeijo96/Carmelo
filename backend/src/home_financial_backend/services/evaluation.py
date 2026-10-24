@@ -5,7 +5,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from home_financial_backend.domain.errors import EvaluationUnavailable
+from home_financial_backend.domain.errors import (
+    CategoryNotFound,
+    EvaluationUnavailable,
+    ParentCategoryNotAssignable,
+)
 from home_financial_backend.domain.models import (
     EVALUATION_THRESHOLD,
     CategoryConfusion,
@@ -96,10 +100,15 @@ class EvaluationService:
         confusion: Counter[tuple[str, str]] = Counter()
         correct = 0
         for index, record in enumerate(dataset.records):
-            category = self._categories.require_active_leaf(
-                household_id,
-                record.expected_category_id,
-            )
+            try:
+                category = self._categories.require_active_leaf(
+                    household_id,
+                    record.expected_category_id,
+                )
+            except (CategoryNotFound, ParentCategoryNotAssignable) as error:
+                raise EvaluationUnavailable(
+                    "Golden dataset contains an invalid expected category."
+                ) from error
             decision = classifier.classify(
                 ClassificationInput(
                     expense_id=f"eval-{index}",

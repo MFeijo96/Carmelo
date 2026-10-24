@@ -99,7 +99,11 @@ def test_insight_prompt_carries_projection_but_never_raw_values(monkeypatch) -> 
                 )
             )
 
-    monkeypatch.setattr(adapters, "build_insight_crew", lambda llm: FakeCrew())
+    monkeypatch.setattr(
+        adapters,
+        "build_insight_crew",
+        lambda llm, *, tracing_enabled=False: FakeCrew(),
+    )
     service = InsightsService(
         DashboardService(repositories.households, repositories.categories, repositories.expenses),
         repositories.categories,

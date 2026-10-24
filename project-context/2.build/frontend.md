@@ -31,10 +31,10 @@ Authentication, complete WCAG evaluation, full emulator-backed frontend smoke co
 
 - `npm test`: 57 tests pass across component, workflow, API-service, and OpenAPI contract tests, including remount recovery, paginated history, retryable load errors and preservation of newer session results.
 - `npm run build`: strict TypeScript check and Vite production build pass.
-- `npm audit`: zero vulnerabilities in the last audit; frontend integration adds no packages.
+- `npm audit`: zero vulnerabilities using npm CLI 10.9.4 against the committed lockfile; frontend integration adds no packages.
 - Live browser check against `127.0.0.1:8000`: submitted synthetic Mercado expense returned backend total R$ 123,45, one expense, category/payment breakdown, backend pt-BR insight, and source summary.
-- Live browser evaluation: backend golden report displayed 30/30 correct, 100%, and all ten category confusion entries.
-- Backend suite: 40 passed and 3 emulator tests skipped without `FIRESTORE_EMULATOR_HOST`; 43 passed with the Firestore Emulator running.
+- Live browser evaluation: backend v2 golden report displayed 50/50 correct, 100%, and 14 category confusion entries. In-memory browser smoke also exercised expense/review, mixed CSV, category management, export status, deletion, and desktop/mobile overflow checks; emulator mode remains unverified.
+- Latest suites: 57 frontend tests/build passed; backend 87 passed and 3 emulator tests skipped without `FIRESTORE_EMULATOR_HOST`. Backend Ruff lint and mypy passed; format check reports an unrelated existing difference in `services/expenses.py`.
 
 ## Spec Sync
 

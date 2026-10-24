@@ -117,7 +117,11 @@ def test_insight_run_records_copilot_usage_without_inventing_a_usd_cost(
                 token_usage=SimpleNamespace(prompt_tokens=1000, completion_tokens=200),
             )
 
-    monkeypatch.setattr(adapters, "build_insight_crew", lambda llm: FakeCrew())
+    monkeypatch.setattr(
+        adapters,
+        "build_insight_crew",
+        lambda llm, *, tracing_enabled=False: FakeCrew(),
+    )
     repositories = create_demo_repositories()
     repositories.expenses.add(
         Expense(

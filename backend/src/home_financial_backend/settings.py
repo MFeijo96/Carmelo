@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     firebase_project_id: str | None = None
     firestore_emulator_host: str | None = None
     copilot_enabled: bool = False
+    crewai_tracing_enabled: bool = False
     copilot_model: str | None = Field(default=None, min_length=1, pattern=r"^\S+$")
     copilot_github_token: SecretStr | None = Field(default=None, exclude=True, repr=False)
     copilot_cli_path: str | None = None

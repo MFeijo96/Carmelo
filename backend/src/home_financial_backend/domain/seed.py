@@ -22,6 +22,7 @@ def build_demo_categories() -> tuple[Category, ...]:
         ("impostos-taxas", "Impostos/taxas", None),
         ("cuidados-pessoais", "Cuidados pessoais", None),
         ("outros", "Outros", None),
+        ("entretenimento", "Entretenimento", "lazer"),
         ("mercado", "Mercado", "alimentacao"),
         ("restaurantes", "Restaurantes", "alimentacao"),
         ("assinaturas", "Assinaturas", "lazer"),

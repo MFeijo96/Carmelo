@@ -15,8 +15,9 @@ from home_financial_backend.runtime.provider import provider_request_scope
 
 
 class CrewAIClassificationFallback:
-    def __init__(self, llm: Any) -> None:
+    def __init__(self, llm: Any, *, tracing_enabled: bool = False) -> None:
         self._llm = llm
+        self._tracing_enabled = tracing_enabled
 
     def __call__(
         self,
@@ -25,7 +26,10 @@ class CrewAIClassificationFallback:
     ) -> ClassificationCandidate:
         try:
             category_options = {token_urlsafe(12): category for category in active_leaf_taxonomy}
-            crew = build_classification_crew(self._llm)
+            crew = build_classification_crew(
+                self._llm,
+                tracing_enabled=self._tracing_enabled,
+            )
             with provider_request_scope(self._llm, max_calls=1):
                 output = crew.kickoff(
                     inputs={
@@ -52,8 +56,9 @@ class CrewAIClassificationFallback:
 
 
 class CrewAIInsightGenerator:
-    def __init__(self, llm: Any) -> None:
+    def __init__(self, llm: Any, *, tracing_enabled: bool = False) -> None:
         self._llm = llm
+        self._tracing_enabled = tracing_enabled
 
     def __call__(
         self,
@@ -62,7 +67,10 @@ class CrewAIInsightGenerator:
         merchant_contexts: tuple[SafeClassificationContext, ...] = (),
     ) -> InsightCard:
         try:
-            crew = build_insight_crew(self._llm)
+            crew = build_insight_crew(
+                self._llm,
+                tracing_enabled=self._tracing_enabled,
+            )
             safe_summary = {
                 "month": summary.month,
                 "total_cents": summary.total_cents,

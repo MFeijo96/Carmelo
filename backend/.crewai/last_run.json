@@ -1,0 +1,9 @@
+{
+  "execution_id": "57e04e40-092e-4b23-b6d1-c4cb9a5051ba",
+  "tier": "authenticated",
+  "started_at": "2026-10-24T01:40:49.443+00:00",
+  "finished_at": "2026-10-24T01:40:57.168+00:00",
+  "recorded_at": "2026-10-24T01:40:57.719+00:00",
+  "amp_base_url": "https://app.crewai.com",
+  "trace_url": "https://app.crewai.com/crewai_plus/otel_traces/57e04e40-092e-4b23-b6d1-c4cb9a5051ba"
+}

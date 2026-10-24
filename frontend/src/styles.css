@@ -895,15 +895,15 @@ h4 {
     border-bottom: 1px solid var(--line);
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
     background: transparent;
-    padding: 16px 12px;
+    padding: 10px 12px;
     text-align: left;
     color: inherit;
 }
 
 .history-row:hover:not(:disabled),
-.history-row.selected {
+.history-row.expanded {
     background: #edf4ef;
 }
 
@@ -920,23 +920,23 @@ h4 {
 .history-description {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 2px;
     min-width: 0;
     flex: 1;
 }
 
 .history-description strong {
-    font-size: 13px;
+    font-size: 12px;
     overflow-wrap: anywhere;
 }
 
 .history-description>span {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
 }
 
 .history-amount {
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
@@ -947,6 +947,54 @@ h4 {
     align-items: center;
     font-size: 11px;
     color: var(--green);
+}
+
+.history-details {
+    border-bottom: 1px solid var(--line);
+    padding: 10px 12px 12px 50px;
+    background: #edf4ef;
+}
+
+.history-details[hidden] {
+    display: none;
+}
+
+.history-details-title {
+    color: var(--green);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+.history-details dl {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.history-details dl>div {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 9px;
+}
+
+.history-details dt {
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: .04em;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+}
+
+.history-details dd {
+    font-size: 11px;
+    font-weight: 600;
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 footer {
@@ -1096,7 +1144,7 @@ footer {
 
     .history-row {
         gap: 10px;
-        padding: 15px 0;
+        padding: 9px 0;
     }
 
     .history-status {
@@ -1105,6 +1153,14 @@ footer {
 
     .history-row>svg {
         flex-shrink: 0;
+    }
+
+    .history-details {
+        padding-left: 0;
+    }
+
+    .history-details dl {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     footer {

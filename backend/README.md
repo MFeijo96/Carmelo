@@ -26,10 +26,17 @@ use the shared `data` / `errors` / `meta` envelope; CSV download metadata is ret
 use a deterministic summary. When enabled, CrewAI is used only for unresolved classification when a
 trusted safe context is present, or for insight writing from aggregate summaries. Provider inputs
 never include raw merchant names, original descriptions, source record IDs, or reversible alias
-maps. The evaluator uses the committed 30-record golden dataset by default; override it with
+maps. The evaluator uses the committed 50-record golden dataset by default; override it with
 `EVALUATION_DATASET_PATH` if needed. The dataset is JSON with a `version` string and a `records` array; each record has an ISO `date`,
 `description`, integer `amount_cents`, `payment_method`, `recurring`, and canonical leaf
 `expected_category_id` fields. Evaluation is deterministic and does not invoke CrewAI.
+
+CrewAI AMP tracing is opt-in with `CREWAI_TRACING_ENABLED=false` by default. For authenticated trace
+grants, create a Personal Access Token in CrewAI AMP, store it as `CREWAI_USER_PAT` in the ignored
+`.env`, and start the API with `uv run --env-file .env home-financial-api`. CrewAI reads this token
+from the process environment; do not commit or share it. Crew task inputs, outputs, and execution
+metadata are sent to CrewAI AMP while tracing is enabled, so use fictitious data only. Set
+`CREWAI_TRACING_ENABLED=false` to disable trace uploads.
 
 ## GitHub Copilot
 

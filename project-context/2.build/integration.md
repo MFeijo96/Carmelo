@@ -9,7 +9,7 @@ The React application integrates with the local FastAPI API. The browser does no
 - Keep frontend service requests and response handling aligned with the FastAPI routes and committed OpenAPI contract.
 - Connect the expense workflows end to end: manual entry, CSV import, monthly review and correction, category management, dashboard and insights, exports and deletion, and categorization evaluation.
 - Preserve transport-specific behavior, including the shared JSON envelope and raw UTF-8 CSV request body, and keep provider and persistence access behind the backend.
-- Verify integration with contract and workflow tests, then record any live smoke checks, failures, and incomplete flows here. Existing verification evidence is listed below; this documentation update did not rerun those checks.
+- Verify integration with contract and workflow tests, then record live smoke checks, failures, and incomplete flows here.
 - Keep the MVP local/demo-only. Authentication, public hosting, and production household data are outside this integration scope.
 
 Current status: the listed frontend flows are connected to the local API. Monthly insights are now gated on pending category reviews in both the API and UI; the review workspace exposes an explicit generate action once review is complete. Emulator-mode browser coverage and independent QA/security sign-off remain open.
@@ -39,9 +39,9 @@ Execute this plan in order, updating the flow evidence and open gaps below as ea
 1. **Contracts and boundaries: complete.** Frontend operations remain covered by the OpenAPI contract test; browser access stays behind FastAPI.
 2. **Expense input/import: complete.** Existing backend/frontend tests cover manual input, valid and rejected CSV rows, row errors, and persistence. Browser smoke verified a synthetic CSV import.
 3. **Human review: complete.** `POST /insights/monthly` returns HTTP 409 while that month has pending review items. Manual entry withholds automatic insight requests when review is pending or the review count cannot be confirmed. The results view links to pending-only review; correction clears the flag and unlocks the review workspace's explicit insight action.
-4. **Monthly results/provider behavior: automated coverage complete.** Deterministic totals remain separate from Crew output; provider safety/fallback contracts are covered by backend tests. The live browser used deterministic fallback because no OpenAI key was configured.
-5. **Taxonomy/export/deletion: automated coverage complete.** Existing route, service, and component tests cover category operations, exports, confirmation, and deletion. A live deletion smoke was intentionally not performed to preserve workspace data.
-6. **Integration gate: partial.** Automated suites, build, lint, type checks, and in-memory browser smoke pass. Emulator-mode browser testing and separate QA/security sign-off remain blocked/open.
+4. **Monthly results/provider behavior: automated coverage complete.** Deterministic totals remain separate from Crew output; provider safety/fallback contracts are covered by backend tests. The live browser used deterministic fallback with provider calls disabled.
+5. **Taxonomy/export/deletion: automated coverage complete.** Existing route, service, and component tests cover category operations, exports, confirmation, and deletion. In-memory browser smoke confirmed category create/rename/merge, export success statuses, and confirmed deletion of the synthetic test records. Native download contents were not captured.
+6. **Integration gate: partial.** Automated suites, build, lint, type checks, and in-memory browser smoke pass. Emulator-mode browser testing and separate QA/security sign-off remain open.
 
 ## Contract
 
@@ -58,16 +58,17 @@ The frontend uses `/households/demo`, `/categories`, `/expenses`, `/imports/csv`
 
 ## Verification
 
-- Frontend: 48 tests pass; `npm run build` passes TypeScript and Vite production build.
-- Backend: 51 tests pass; 3 Firestore Emulator tests skip without `FIRESTORE_EMULATOR_HOST`.
-- Backend Ruff lint and mypy pass (33 source files).
-- Browser smoke against the local in-memory API imported one synthetic ambiguous CSV expense, confirmed insight generation was disabled while review was pending, corrected its category, and verified the explicit insight action then returned the deterministic summary.
-- The live evaluation tab returned 30/30 exact matches and displayed the category confusion entries.
-- The live API reported `provider_configured=false`; no external provider credentials or requests were used.
+- Frontend: 57 tests pass; TypeScript and Vite production build pass using the VS Code bundled Node runtime.
+- Backend: 91 tests pass with Firestore Emulator 1.22.0; no tests skipped. The three emulator-specific tests also pass when run independently.
+- Backend Ruff lint and mypy pass (33 source files). Format check reports the existing unrelated difference in `services/expenses.py`.
+- In-memory browser smoke: manual expense/dashboard; ambiguous expense review gate, correction, then deterministic insight; mixed CSV with 1 imported and 1 rejected row; category create/rename/merge; evaluation; export success statuses; confirmed deletion. Provider calls were disabled, and only synthetic data was used.
+- Live evaluation returned 50/50 (100%) with 14 category confusion entries; API event duration was 5 ms.
+- Mobile/desktop viewport check found no horizontal overflow at nominal 390px and 1440px widths.
+- Frontend `npm audit` with npm CLI 10.9.4 found zero vulnerabilities. Native download events/content were not captured.
 
 ## Known Gaps
 
-No independent integration-persona sign-off is recorded. The current browser smoke used in-memory persistence; emulator-mode browser coverage remains unverified. The three emulator tests were skipped because `FIRESTORE_EMULATOR_HOST` was not configured, and the Firebase CLI is not installed in this environment. The browser smoke's synthetic expense was cleared by restarting the in-memory API. The attempted delete-all action reported zero prior expenses; no existing workspace records were deleted.
+No independent integration-persona sign-off is recorded. The browser smoke used in-memory persistence; emulator-mode browser coverage remains unverified. The Firestore Emulator was started directly from its cached JAR because Firebase CLI is not installed. The smoke explicitly confirmed deletion of only its three synthetic expenses and visible history; no pre-existing data was present or removed.
 
 ## Sources
 
@@ -91,3 +92,4 @@ No independent integration-persona sign-off is recorded. The current browser smo
 - 2026-10-12: implemented and tested local API workflows; no production integration or external service credentials used.
 - 2026-10-15: documented integration-persona scope and current handoff status; no runtime behavior changed and no checks were rerun.
 - 2026-10-16: enforced the pending-review gate for monthly insights, added the UI review-to-insights flow, and verified API, frontend, and in-memory browser behavior; no live OpenAI calls or cloud persistence used.
+- 2026-10-23: executed synthetic in-memory browser flows across expense/review, CSV, category management, evaluation, export statuses, and confirmed deletion; 50-record deterministic evaluation passed. Firestore Emulator backend suite passed (91 total); emulator browser flows and independent persona reviews remain open.

@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState, type FormEvent } from 'react'
-import { ArrowRight, Check, ChevronRight, CircleAlert, Clock3, House, ListFilter, LoaderCircle, Play, ReceiptText, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, ChevronUp, CircleAlert, Clock3, House, ListFilter, LoaderCircle, Play, ReceiptText, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { startRun, getRunStatus, getCategories, getHistory } from './services/runs'
 import { categoryOptions as defaultCategoryOptions, initialState, money, monthLabel, payments, parseAmount, validateInput, workflowReducer, type CategoryOption, type ExpenseInput, type InsightProviderErrorCode, type RunResult, type RunService } from './workflow'
 import WorkspaceTools from './WorkspaceTools'
@@ -63,8 +63,10 @@ export default function App({ service = defaultService }: { service?: RunService
     const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([...defaultCategoryOptions])
     const [formError, setFormError] = useState<string | null>(null)
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
     const [lastUpdated, setLastUpdated] = useState(() => new Date())
     const [reviewRequest, setReviewRequest] = useState(0)
+    const [expenseRefreshRequest, setExpenseRefreshRequest] = useState(0)
     const [historyLoading, setHistoryLoading] = useState(Boolean(service.getHistory))
     const [historyError, setHistoryError] = useState<string | null>(null)
     const [historyAttempt, setHistoryAttempt] = useState(0)
@@ -132,6 +134,7 @@ export default function App({ service = defaultService }: { service?: RunService
                     locked.current = false
                     dispatch({ type: 'completed', runId: requestId, result: status.result, input })
                     setSelectedId(requestId)
+                    setExpenseRefreshRequest(value => value + 1)
                     for (const field of ['description', 'amount']) (formRef.current?.elements.namedItem(field) as HTMLInputElement).value = ''
                 } else {
                     timer = setTimeout(() => { void poll(runId) }, 400)
@@ -239,7 +242,7 @@ export default function App({ service = defaultService }: { service?: RunService
                     {selected ? <Results result={selected} categoryLabel={categoryLabel} onReview={() => setReviewRequest(value => value + 1)} /> : <div className="empty-result"><span className={`empty-icon ${running ? 'is-running' : ''}`}>{running ? <LoaderCircle className="spin" size={32} /> : <ReceiptText size={34} strokeWidth={1.3} />}</span><h3>{running ? statusPresentation.running.label : 'Nenhum resultado por aqui'}</h3><p>{running ? 'Aguardando o resultado da execução.' : 'Nenhuma despesa registrada nesta sessão.'}</p><div className="empty-ledger" aria-hidden="true"><span /><span /><span /></div></div>}
                 </section>
             </div>
-            {service === defaultService && <WorkspaceTools reviewRequest={reviewRequest} onDataDeleted={() => {
+            {service === defaultService && <WorkspaceTools reviewRequest={reviewRequest} expenseRefreshRequest={expenseRefreshRequest} onDataDeleted={() => {
                 historyGeneration.current += 1
                 setHistoryLoading(false)
                 setHistoryError(null)
@@ -249,9 +252,38 @@ export default function App({ service = defaultService }: { service?: RunService
                 dispatch({ type: 'cleared' })
             }} />}
             <section className="history-section" aria-labelledby="history-title">
-                <div className="section-heading"><span className="section-number">03</span><h2 id="history-title">Histórico</h2><span className="muted-label">{state.history.length} {state.history.length === 1 ? 'execução' : 'execuções'}</span></div>
+                <div className="section-heading"><span className="section-number">04</span><h2 id="history-title">Histórico</h2><span className="muted-label">{state.history.length} {state.history.length === 1 ? 'execução' : 'execuções'}</span></div>
                 {historyError && <div className="error" role="alert"><p>{historyError}</p><button className="action-button" type="button" disabled={running} onClick={() => setHistoryAttempt(value => value + 1)}><RefreshCw size={16} />Tentar carregar novamente</button></div>}
-                {state.history.length === 0 ? <div className="history-empty"><Clock3 size={18} /><span>{historyLoading ? 'Carregando despesas salvas...' : historyError ? 'Histórico indisponível.' : 'Nenhuma despesa registrada.'}</span></div> : <ul className="history-list">{state.history.map(result => <li key={result.requestId}><button type="button" className={`history-row ${selectedId === result.requestId ? 'selected' : ''}`} disabled={running} aria-label={`Ver resultado: ${result.submittedInput.description}`} aria-pressed={selectedId === result.requestId} onClick={() => setSelectedId(result.requestId)}><span className="history-icon"><ReceiptText size={18} /></span><span className="history-description"><strong>{result.submittedInput.description}</strong><span>{monthLabel(result.submittedInput.date.slice(0, 7))}</span></span><span className="history-amount">{money(result.submittedInput.amountCents)}</span><span className="history-status"><Check size={13} /> {statusPresentation.done.label}</span><ChevronRight size={17} /></button></li>)}</ul>}
+                {state.history.length === 0 ? <div className="history-empty"><Clock3 size={18} /><span>{historyLoading ? 'Carregando despesas salvas...' : historyError ? 'Histórico indisponível.' : 'Nenhuma despesa registrada.'}</span></div> : <ul className="history-list">{state.history.map(result => {
+                    const expanded = expandedHistoryId === result.requestId
+                    const detailsId = `history-details-${result.requestId}`
+                    return <li key={result.requestId}>
+                        <button
+                            type="button"
+                            className={`history-row ${expanded ? 'expanded' : ''}`}
+                            disabled={running}
+                            aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} detalhes: ${result.submittedInput.description}`}
+                            aria-expanded={expanded}
+                            aria-controls={detailsId}
+                            onClick={() => setExpandedHistoryId(current => current === result.requestId ? null : result.requestId)}
+                        >
+                            <span className="history-icon"><ReceiptText size={18} /></span>
+                            <span className="history-description"><strong>{result.submittedInput.description}</strong><span>{monthLabel(result.submittedInput.date.slice(0, 7))}</span></span>
+                            <span className="history-amount">{money(result.submittedInput.amountCents)}</span>
+                            <span className="history-status"><Check size={13} /> {statusPresentation.done.label}</span>
+                            {expanded ? <ChevronUp size={17} aria-hidden="true" /> : <ChevronDown size={17} aria-hidden="true" />}
+                        </button>
+                        <div className="history-details" id={detailsId} role="group" aria-label={`Detalhes de ${result.submittedInput.description}`} hidden={!expanded}>
+                            <h3 className="history-details-title">Detalhes da despesa</h3>
+                            <dl>
+                                <div><dt>Data</dt><dd>{new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', dateStyle: 'long' }).format(new Date(`${result.submittedInput.date}T12:00:00Z`))}</dd></div>
+                                <div><dt>Categoria</dt><dd>{categoryLabel(result.input.category)}</dd></div>
+                                <div><dt>Pagamento</dt><dd>{paymentLabels[result.submittedInput.payment]}</dd></div>
+                                <div><dt>Recorrente</dt><dd>{result.submittedInput.recurring ? 'Sim' : 'Não'}</dd></div>
+                            </dl>
+                        </div>
+                    </li>
+                })}</ul>}
             </section>
             <footer><span>Home Financial</span><span>Dados fictícios · Sem conexão bancária</span></footer>
         </main>

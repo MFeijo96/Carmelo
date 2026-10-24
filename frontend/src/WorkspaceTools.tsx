@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Archive, Check, Download, FileUp, Gauge, ListFilter, Tags } from 'lucide-react'
 import { money, monthLabel, type InsightProviderErrorCode } from './workflow'
 import { householdService, type EvaluationReport, type HouseholdCategory, type HouseholdExpense, type HouseholdInsight, type HouseholdService, type ImportRun } from './services/household'
@@ -31,7 +31,7 @@ function saveDownload(blob: Blob, filename: string) {
     URL.revokeObjectURL(url)
 }
 
-export default function WorkspaceTools({ service = householdService, onDataDeleted, reviewRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; reviewRequest?: number }) {
+export default function WorkspaceTools({ service = householdService, onDataDeleted, reviewRequest = 0, expenseRefreshRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; reviewRequest?: number; expenseRefreshRequest?: number }) {
     const [tab, setTab] = useState<Tab>('import')
     const [categories, setCategories] = useState<HouseholdCategory[]>([])
     const [expenses, setExpenses] = useState<HouseholdExpense[]>([])
@@ -60,6 +60,8 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
     const [busy, setBusy] = useState(false)
     const [message, setMessage] = useState('')
     const [error, setError] = useState('')
+    const reviewHeadingRef = useRef<HTMLHeadingElement>(null)
+    const scrolledReviewRequest = useRef(0)
     const activeLeaves = categories.filter(category => category.is_active && !categories.some(child => child.is_active && child.parent_category_id === category.id))
     const topLevelCategories = categories.filter(category => category.is_active && category.parent_category_id === null)
     const customLeaves = activeLeaves.filter(category => !category.is_standard)
@@ -91,6 +93,12 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         setSourceFilter('')
         setOffset(0)
     }, [reviewRequest])
+
+    useEffect(() => {
+        if (reviewRequest === 0 || tab !== 'review' || scrolledReviewRequest.current === reviewRequest) return
+        scrolledReviewRequest.current = reviewRequest
+        reviewHeadingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, [reviewRequest, tab])
 
     async function refreshExpenses() {
         const [result, pending, monthly] = await Promise.all([
@@ -138,7 +146,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível listar as despesas.') })
             .finally(() => { if (active) setReviewStatusLoading(false) })
         return () => { active = false }
-    }, [categoryFilter, confidenceFilter, month, offset, paymentFilter, reviewOnly, service, sourceFilter, tab])
+    }, [categoryFilter, confidenceFilter, expenseRefreshRequest, month, offset, paymentFilter, reviewOnly, service, sourceFilter, tab])
 
     async function perform(action: () => Promise<void>, success: string) {
         setBusy(true)
@@ -238,7 +246,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
     }
 
     return <section className="workspace-tools" aria-labelledby="tools-title">
-        <div className="section-heading"><span className="section-number">04</span><h2 id="tools-title">Gestão da casa</h2><span className="muted-label">Operações locais</span></div>
+        <div className="section-heading"><span className="section-number">03</span><h2 id="tools-title">Gestão da casa</h2><span className="muted-label">Operações locais</span></div>
         <div className="tool-tabs" role="tablist" aria-label="Operações da casa">
             {tabs.map(({ id, label, icon: Icon }) => <button type="button" role="tab" key={id} id={`tab-${id}`} aria-selected={tab === id} aria-controls={tab === id ? `panel-${id}` : undefined} onClick={() => { setTab(id); setError(''); setMessage('') }}><Icon size={16} />{label}</button>)}
         </div>
@@ -252,7 +260,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
                 {importRun && <div className="import-report" role="status"><strong>{importRun.imported_rows} importadas</strong><span>{importRun.rejected_rows} rejeitadas de {importRun.total_rows} linhas</span>{importRun.row_errors.length > 0 && <ul>{importRun.row_errors.map((rowError, index) => <li key={`${rowError.row}-${rowError.field}-${index}`}>Linha {rowError.row}, {rowError.field}: {rowError.message}{rowError.value ? ` (${rowError.value})` : ''}</li>)}</ul>}</div>}
             </div>}
             {tab === 'review' && <div className="tool-content">
-                <h3>Revisar despesas</h3>
+                <h3 ref={reviewHeadingRef}>Revisar despesas</h3>
                 <div className="review-filters">
                     <label>Mês<input type="month" value={month} onChange={event => { setMonth(event.target.value); setOffset(0); setMonthlyInsight(null) }} /></label>
                     <label>Categoria<select value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setOffset(0) }}><option value="">Todas</option>{activeLeaves.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></label>

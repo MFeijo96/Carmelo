@@ -13,7 +13,7 @@ def _load_config(filename: str) -> dict[str, Any]:
     return yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
 
-def build_classification_crew(llm: Any) -> Crew:
+def build_classification_crew(llm: Any, *, tracing_enabled: bool = False) -> Crew:
     agents = _load_config("agents.yaml")
     tasks = _load_config("tasks.yaml")
     agent = Agent(config=agents["categorization_agent"], llm=llm, verbose=False)
@@ -29,10 +29,11 @@ def build_classification_crew(llm: Any) -> Crew:
         memory=False,
         max_rpm=6,
         verbose=False,
+        tracing=tracing_enabled,
     )
 
 
-def build_insight_crew(llm: Any) -> Crew:
+def build_insight_crew(llm: Any, *, tracing_enabled: bool = False) -> Crew:
     agents = _load_config("agents.yaml")
     tasks = _load_config("tasks.yaml")
     agent = Agent(config=agents["insight_agent"], llm=llm, verbose=False)
@@ -48,4 +49,5 @@ def build_insight_crew(llm: Any) -> Crew:
         memory=False,
         max_rpm=6,
         verbose=False,
+        tracing=tracing_enabled,
     )

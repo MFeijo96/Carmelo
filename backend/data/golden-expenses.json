@@ -1,5 +1,5 @@
 {
-    "version": "home-financial-golden-v1",
+    "version": "home-financial-golden-v2",
     "records": [
         {
             "date": "2026-10-01",
@@ -240,6 +240,166 @@
             "payment_method": "debito",
             "recurring": false,
             "expected_category_id": "category-impostos-taxas"
+        },
+        {
+            "date": "2026-10-31",
+            "description": "Compra no supermercado do bairro",
+            "amount_cents": 2960,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-11-01",
+            "description": "Feira de alimentos da semana",
+            "amount_cents": 4720,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-mercado"
+        },
+        {
+            "date": "2026-11-02",
+            "description": "Lanche na lanchonete",
+            "amount_cents": 2430,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-11-03",
+            "description": "Almoço por delivery",
+            "amount_cents": 3890,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-restaurantes"
+        },
+        {
+            "date": "2026-11-04",
+            "description": "Aluguel residencial",
+            "amount_cents": 182000,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-moradia"
+        },
+        {
+            "date": "2026-11-05",
+            "description": "Condomínio mensal",
+            "amount_cents": 49200,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-moradia"
+        },
+        {
+            "date": "2026-11-06",
+            "description": "Energia elétrica residencial",
+            "amount_cents": 19030,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-11-07",
+            "description": "Botijão de gás de cozinha",
+            "amount_cents": 12800,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-contas-da-casa"
+        },
+        {
+            "date": "2026-11-08",
+            "description": "Abastecimento com gasolina",
+            "amount_cents": 26800,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-11-09",
+            "description": "Bilhete de metrô",
+            "amount_cents": 650,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-transporte"
+        },
+        {
+            "date": "2026-11-10",
+            "description": "Remédio comprado na farmácia",
+            "amount_cents": 8160,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-saude"
+        },
+        {
+            "date": "2026-11-11",
+            "description": "Curso de informática",
+            "amount_cents": 28500,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-educacao"
+        },
+        {
+            "date": "2026-11-12",
+            "description": "Serviço de streaming de filmes",
+            "amount_cents": 4590,
+            "payment_method": "credito",
+            "recurring": true,
+            "expected_category_id": "category-assinaturas"
+        },
+        {
+            "date": "2026-11-13",
+            "description": "Parcela de empréstimo pessoal",
+            "amount_cents": 22000,
+            "payment_method": "debito",
+            "recurring": true,
+            "expected_category_id": "category-dividas"
+        },
+        {
+            "date": "2026-11-14",
+            "description": "Ração para cachorro",
+            "amount_cents": 13700,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-pets"
+        },
+        {
+            "date": "2026-11-15",
+            "description": "Pagamento de IPVA",
+            "amount_cents": 55000,
+            "payment_method": "debito",
+            "recurring": false,
+            "expected_category_id": "category-impostos-taxas"
+        },
+        {
+            "date": "2026-11-16",
+            "description": "Corte no cabeleireiro",
+            "amount_cents": 7200,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-cuidados-pessoais"
+        },
+        {
+            "date": "2026-11-17",
+            "description": "Ingresso de show",
+            "amount_cents": 16500,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-entretenimento"
+        },
+        {
+            "date": "2026-11-18",
+            "description": "Despesa sem identificação",
+            "amount_cents": 1120,
+            "payment_method": "dinheiro",
+            "recurring": false,
+            "expected_category_id": "category-outros"
+        },
+        {
+            "date": "2026-11-19",
+            "description": "Serviço avulso sem categoria conhecida",
+            "amount_cents": 9400,
+            "payment_method": "credito",
+            "recurring": false,
+            "expected_category_id": "category-outros"
         }
     ]
 }

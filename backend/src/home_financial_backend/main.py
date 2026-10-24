@@ -38,10 +38,20 @@ app.state.settings = settings
 app.state.repositories = create_repositories(settings)
 app.state.llm = create_llm(settings)
 app.state.classification_fallback = (
-    CrewAIClassificationFallback(app.state.llm) if app.state.llm is not None else None
+    CrewAIClassificationFallback(
+        app.state.llm,
+        tracing_enabled=settings.crewai_tracing_enabled,
+    )
+    if app.state.llm is not None
+    else None
 )
 app.state.insight_generator = (
-    CrewAIInsightGenerator(app.state.llm) if app.state.llm is not None else None
+    CrewAIInsightGenerator(
+        app.state.llm,
+        tracing_enabled=settings.crewai_tracing_enabled,
+    )
+    if app.state.llm is not None
+    else None
 )
 app.state.merchant_context_service = MerchantContextService(
     app.state.repositories.merchant_contexts

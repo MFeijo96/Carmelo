@@ -45,11 +45,40 @@ describe('household operations', () => {
     it('opens the pending-review tab when requested from the result screen', async () => {
         const service = serviceMock()
         const { rerender } = render(<WorkspaceTools service={service} reviewRequest={0} />)
+        const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView')
+        const scrollIntoView = vi.fn()
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
 
-        rerender(<WorkspaceTools service={service} reviewRequest={1} />)
+        try {
+            rerender(<WorkspaceTools service={service} reviewRequest={1} />)
 
-        expect(screen.getByRole('tab', { name: 'Despesas' })).toHaveAttribute('aria-selected', 'true')
-        expect(screen.getByLabelText('Pendentes de revisão')).toBeChecked()
+            expect(screen.getByRole('tab', { name: 'Despesas' })).toHaveAttribute('aria-selected', 'true')
+            expect(screen.getByLabelText('Pendentes de revisão')).toBeChecked()
+            await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' }))
+            expect(screen.getByRole('heading', { name: 'Revisar despesas' })).toBeInTheDocument()
+        } finally {
+            if (descriptor) Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', descriptor)
+            else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
+        }
+    })
+
+    it('refreshes expenses when a new expense is registered while the tab is open', async () => {
+        const service = serviceMock()
+        const { rerender } = render(<WorkspaceTools service={service} expenseRefreshRequest={0} />)
+        await userEvent.click(screen.getByRole('tab', { name: 'Despesas' }))
+        await screen.findByText('Compra da casa')
+
+        const newExpense = { ...expense, id: 'expense-2', description: 'Compra em Outros', category_id: 'other' }
+        vi.mocked(service.listExpenses).mockResolvedValue({
+            expenses: [newExpense],
+            totalCount: 1,
+        })
+        const callsBeforeRefresh = vi.mocked(service.listExpenses).mock.calls.length
+        rerender(<WorkspaceTools service={service} expenseRefreshRequest={1} />)
+
+        expect(await screen.findByText('Compra em Outros')).toBeInTheDocument()
+        expect(screen.queryByText('Compra da casa')).not.toBeInTheDocument()
+        expect(service.listExpenses).toHaveBeenCalledTimes(callsBeforeRefresh + 3)
     })
 
     it('shows CSV row errors and accepted/rejected counts', async () => {

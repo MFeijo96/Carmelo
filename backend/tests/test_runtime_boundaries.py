@@ -63,7 +63,11 @@ def test_insight_adapter_receives_only_aggregate_safe_context_and_opaque_sources
                 )
             )
 
-    monkeypatch.setattr(adapters, "build_insight_crew", lambda llm: FakeCrew())
+    monkeypatch.setattr(
+        adapters,
+        "build_insight_crew",
+        lambda llm, *, tracing_enabled=False: FakeCrew(),
+    )
     summary = MonthlyDashboard(
         month="2026-10",
         total_cents=1250,
@@ -288,7 +292,11 @@ def test_classifier_prompt_uses_opaque_category_options_and_maps_result(monkeypa
                 )
             )
 
-    monkeypatch.setattr(adapters, "build_classification_crew", lambda llm: FakeCrew())
+    monkeypatch.setattr(
+        adapters,
+        "build_classification_crew",
+        lambda llm, *, tracing_enabled=False: FakeCrew(),
+    )
     category = create_demo_repositories().categories.require_active_leaf(
         DEMO_HOUSEHOLD.id,
         "category-mercado",
@@ -316,7 +324,11 @@ def test_insight_crew_kickoff_failure_uses_fallback_and_reports_provider_failure
     class AuthenticationError(Exception):
         pass
 
-    monkeypatch.setattr(adapters, "build_insight_crew", lambda llm: FailedCrew())
+    monkeypatch.setattr(
+        adapters,
+        "build_insight_crew",
+        lambda llm, *, tracing_enabled=False: FailedCrew(),
+    )
     repositories = create_demo_repositories()
     repositories.expenses.add(
         Expense(
