@@ -78,11 +78,15 @@ export function workflowReducer(state: WorkflowState, event: WorkflowEvent): Wor
         case 'cleared':
             return initialState
         case 'restored': {
-            const existing = new Set(state.history.map(result => result.runId))
-            const restored = event.results.filter(result => !existing.has(result.runId)).map(result => ({
-                ...result, requestId: result.runId, submittedInput: { ...result.input },
+            const existing = new Map(state.history.map(result => [result.runId, result]))
+            const restoredIds = new Set(event.results.map(result => result.runId))
+            const restored = event.results.map(result => ({
+                ...result,
+                requestId: existing.get(result.runId)?.requestId ?? result.runId,
+                submittedInput: existing.get(result.runId)?.submittedInput ?? { ...result.input },
             }))
-            return { ...state, history: [...state.history, ...restored] }
+            const notRestored = state.history.filter(result => !restoredIds.has(result.runId))
+            return { ...state, history: [...restored, ...notRestored] }
         }
         case 'started':
             return state.phase === 'running' ? state : { ...state, phase: 'running', runId: event.runId, error: null }

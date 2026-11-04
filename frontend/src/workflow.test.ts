@@ -80,12 +80,15 @@ describe('workflow FSM', () => {
         expect(done.history[0].requestId).toBe(runId)
         const lateRestore = workflowReducer(done, {
             type: 'restored', results: [
-                { ...status.result, input: { ...input, description: 'Stale stored value' } },
+                { ...status.result, totalCents: 500, input: { ...input, description: 'Updated category' } },
                 { ...status.result, runId: 'older-expense' },
             ]
         })
         expect(lateRestore.history).toHaveLength(2)
-        expect(lateRestore.history[0]).toEqual(done.history[0])
+        expect(lateRestore.history[0].totalCents).toBe(500)
+        expect(lateRestore.history[0].input.description).toBe('Updated category')
+        expect(lateRestore.history[0].requestId).toBe(done.history[0].requestId)
+        expect(lateRestore.history[0].submittedInput).toEqual(input)
         expect(lateRestore.phase).toBe('done')
         const duringRun = workflowReducer(running, { type: 'restored', results: [status.result] })
         expect(duringRun.phase).toBe('running')

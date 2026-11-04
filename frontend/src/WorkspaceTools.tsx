@@ -31,7 +31,7 @@ function saveDownload(blob: Blob, filename: string) {
     URL.revokeObjectURL(url)
 }
 
-export default function WorkspaceTools({ service = householdService, onDataDeleted, onCategoriesChanged, reviewRequest = 0, expenseRefreshRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; onCategoriesChanged?: (categories: HouseholdCategory[]) => void; reviewRequest?: number; expenseRefreshRequest?: number }) {
+export default function WorkspaceTools({ service = householdService, onDataDeleted, onCategoriesChanged, onExpensesChanged, reviewRequest = 0, expenseRefreshRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; onCategoriesChanged?: (categories: HouseholdCategory[]) => void; onExpensesChanged?: () => void; reviewRequest?: number; expenseRefreshRequest?: number }) {
     const [tab, setTab] = useState<Tab>('review')
     const [categories, setCategories] = useState<HouseholdCategory[]>([])
     const [expenses, setExpenses] = useState<HouseholdExpense[]>([])
@@ -177,6 +177,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
             const result = await service.importCsv(selectedFile)
             setImportRun(result)
             await refreshExpenses()
+            onExpensesChanged?.()
         }, 'Importação concluída.')
     }
 
@@ -205,6 +206,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
             await service.mergeCategories(selectedMergeSourceId, selectedMergeTargetId)
             await refreshCategories()
             await refreshExpenses()
+            onExpensesChanged?.()
         }, 'Categorias mescladas e despesas reatribuídas.')
     }
 
@@ -238,6 +240,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
             setMonthlyInsight(null)
             await service.correctCategory(expense.id, categoryId)
             await refreshExpenses()
+            onExpensesChanged?.()
         }, 'Categoria da despesa corrigida.')
     }
 

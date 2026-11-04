@@ -112,7 +112,8 @@ describe('household operations', () => {
     it('lists expenses and records a user category correction', async () => {
         const user = userEvent.setup()
         const service = serviceMock()
-        render(<WorkspaceTools service={service} />)
+        const onExpensesChanged = vi.fn()
+        render(<WorkspaceTools service={service} onExpensesChanged={onExpensesChanged} />)
         await user.click(screen.getByRole('tab', { name: 'Despesas' }))
         await screen.findByText('Compra da casa')
         await user.selectOptions(screen.getByLabelText('Categoria'), 'other')
@@ -132,6 +133,7 @@ describe('household operations', () => {
         fireEvent.change(screen.getByLabelText('Categoria de Compra da casa'), { target: { value: 'other' } })
 
         await waitFor(() => expect(service.correctCategory).toHaveBeenCalledWith('expense-1', 'other'))
+        expect(onExpensesChanged).toHaveBeenCalledOnce()
         expect(service.listExpenses).toHaveBeenCalledWith(expect.objectContaining({ month: expect.any(String) }))
         expect(await screen.findByRole('button', { name: 'Gerar insights do mês' })).toBeEnabled()
         expect(screen.queryByText(/Revise 1 despesa pendente/)).not.toBeInTheDocument()
