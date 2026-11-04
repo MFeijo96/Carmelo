@@ -8,5 +8,10 @@
   ],
   "chat.agentFilesLocations": [
     ".github/agents"
-  ]
+  ],
+  "chat.tools.terminal.autoApprove": {
+    "npm test": true,
+    "/tmp/node-v22.22.0-linux-x64/bin/npm": true
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:system"
 }

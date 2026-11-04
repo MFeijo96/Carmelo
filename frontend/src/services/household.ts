@@ -9,7 +9,6 @@ type ApiEnvelope<T> = {
 export type HouseholdCategory = {
     id: string
     label: string
-    parent_category_id: string | null
     is_active: boolean
     is_standard: boolean
 }
@@ -67,7 +66,7 @@ export type HouseholdService = {
     importCsv(file: File): Promise<ImportRun>
     correctCategory(expenseId: string, categoryId: string): Promise<HouseholdExpense>
     generateInsights(month: string): Promise<HouseholdInsight>
-    createCategory(label: string, parentCategoryId: string): Promise<HouseholdCategory>
+    createCategory(label: string): Promise<HouseholdCategory>
     renameCategory(categoryId: string, label: string): Promise<HouseholdCategory>
     mergeCategories(sourceCategoryId: string, targetCategoryId: string): Promise<HouseholdCategory>
     exportCsv(): Promise<Blob>
@@ -164,11 +163,11 @@ export const householdService: HouseholdService = {
             providerErrorCode: data.insight_run.provider_error_code,
         }
     },
-    async createCategory(label, parentCategoryId) {
+    async createCategory(label) {
         const data = await request<{ category: HouseholdCategory }>('/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ label, parent_category_id: parentCategoryId }),
+            body: JSON.stringify({ label }),
         })
         return data.category
     },

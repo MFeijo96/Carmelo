@@ -2,12 +2,12 @@
 
 ## Objective
 
-Measure exact top-1 leaf-category accuracy using the deterministic classifier with LLM fallback disabled and zero provider calls.
+Measure exact top-1 category accuracy using the deterministic classifier with LLM fallback disabled and zero provider calls.
 
 ## Dataset
 
 - 50 synthetic Brazilian household expense records (`home-financial-golden-v2`).
-- Expected labels are canonical leaf category IDs.
+- Expected labels are canonical category IDs.
 - Each row carries date, description, integer BRL cents, payment method, and an independent recurrence flag.
 
 ## Result
@@ -26,8 +26,8 @@ This synthetic dataset is curated and includes descriptions that align with dete
 
 ## Evaluation Checks Implemented
 
-- The fixture now has 50 canonical leaf labels across all payment methods and both recurrence states; it uses synthetic data only.
-- Automated tests cover repeatable metrics, confusion totals, exact 70% pass and below-threshold fail, invalid/parent category labels, unavailable dataset versions, and disabled classifier fallback.
+- The fixture now has 50 canonical category labels across all payment methods and both recurrence states; it uses synthetic data only.
+- Automated tests cover repeatable metrics, confusion totals, exact 70% pass and below-threshold fail, invalid category labels, unavailable dataset versions, and disabled classifier fallback.
 - The live frontend evaluation passed with fallback/provider disabled. Provider fallback behavior remains covered separately by mocked adapter tests.
 - No LLM judge was added. Insight safety and grounding continue to use schema/source checks and human review; cost remains tracking-only until an operator sets a budget.
 
@@ -45,7 +45,7 @@ This synthetic dataset is curated and includes descriptions that align with dete
 
 ## Assumptions
 
-- Exact canonical leaf equality is the acceptance metric.
+- Exact canonical category equality is the acceptance metric.
 - Provider-based classification is excluded from the acceptance run.
 
 ## Open Questions

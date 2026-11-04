@@ -239,7 +239,7 @@
             "amount_cents": 35000,
             "payment_method": "debito",
             "recurring": false,
-            "expected_category_id": "category-impostos-taxas"
+            "expected_category_id": "category-outros"
         },
         {
             "date": "2026-10-31",
@@ -367,7 +367,7 @@
             "amount_cents": 55000,
             "payment_method": "debito",
             "recurring": false,
-            "expected_category_id": "category-impostos-taxas"
+            "expected_category_id": "category-outros"
         },
         {
             "date": "2026-11-16",

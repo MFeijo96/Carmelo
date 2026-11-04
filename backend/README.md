@@ -17,6 +17,25 @@ The API binds to `127.0.0.1:8000`. Check `http://127.0.0.1:8000/health` or open 
 OpenAPI document at `http://127.0.0.1:8000/docs`. Use synthetic data only. The default memory
 adapter loses records when the process restarts.
 
+## Docker Compose
+
+Install Docker Engine with Docker Compose v2.24 or newer. From the repository root, build and
+start the frontend and API:
+
+```sh
+docker compose up --build
+```
+
+Open the frontend at http://127.0.0.1:5173/ and the API docs at
+http://127.0.0.1:8000/docs. Stop the containers with `docker compose down`. Both published ports
+are bound to loopback only. The backend uses in-memory persistence by default, so data is lost when
+the backend container is recreated or restarted; use synthetic data only.
+
+An optional `backend/.env` file is loaded into the backend container and is ignored by Git. Do not
+enable Copilot in the container unless its runtime and authentication are deliberately configured;
+an authenticated CLI on the host's loopback address is not reachable as `127.0.0.1` from inside a
+container. Firestore Emulator and cloud Firestore are not started by this Compose setup.
+
 Implemented routes cover the demo household, CSV/manual expense input, expense/category review,
 monthly dashboard and insights, CSV/JSON export, demo-data deletion, and categorization evaluation.
 CSV imports use a raw UTF-8 body with `Content-Type: text/csv` or `text/plain`. JSON API responses

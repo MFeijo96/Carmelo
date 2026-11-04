@@ -174,7 +174,6 @@ def create_category(
     category = request.app.state.category_service.create(
         household_id,
         body.label,
-        body.parent_category_id,
     )
     return _envelope(request, CategoryResultData(category=category))
 

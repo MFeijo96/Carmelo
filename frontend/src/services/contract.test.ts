@@ -49,7 +49,7 @@ describe('frontend requests match the committed backend OpenAPI contract', () =>
             householdService.generateInsights('2026-10'),
             householdService.importCsv(file),
             householdService.correctCategory('expense-1', 'category-mercado'),
-            householdService.createCategory('Feira', 'category-alimentacao'),
+            householdService.createCategory('Feira'),
             householdService.renameCategory('category-custom-1', 'Nova'),
             householdService.mergeCategories('category-custom-1', 'category-mercado'),
             householdService.exportCsv(),

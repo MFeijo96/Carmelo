@@ -284,7 +284,7 @@ def test_classifier_prompt_uses_opaque_category_options_and_maps_result(monkeypa
             observed.update(inputs)
             return SimpleNamespace(
                 pydantic=ClassificationCandidate(
-                    category_id=inputs["active_leaf_taxonomy"][0]["category_id"],
+                    category_id=inputs["active_categories"][0]["category_id"],
                     confidence=0.8,
                     reason="Sugestão compatível com o contexto seguro.",
                     source="llm_fallback",
@@ -297,7 +297,7 @@ def test_classifier_prompt_uses_opaque_category_options_and_maps_result(monkeypa
         "build_classification_crew",
         lambda llm, *, tracing_enabled=False: FakeCrew(),
     )
-    category = create_demo_repositories().categories.require_active_leaf(
+    category = create_demo_repositories().categories.require_active_category(
         DEMO_HOUSEHOLD.id,
         "category-mercado",
     )
@@ -307,7 +307,7 @@ def test_classifier_prompt_uses_opaque_category_options_and_maps_result(monkeypa
     )
 
     assert candidate.category_id == category.id
-    assert observed["active_leaf_taxonomy"][0]["category_id"] != category.id
+    assert observed["active_categories"][0]["category_id"] != category.id
     assert category.id not in json.dumps(observed, ensure_ascii=False)
 
 

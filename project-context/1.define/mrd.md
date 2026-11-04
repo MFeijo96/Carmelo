@@ -28,7 +28,7 @@ This MRD is intended to support Phase 1 Define artifacts in AAMAD. It should inf
 - Currency: BRL only.
 - Insights: generated through the OpenAI API using a cost-efficient GPT-4o mini-class model or the current equivalent available at implementation time, with deterministic calculations for totals and comparisons.
 - Bank integration: explicitly out of scope for the MVP.
-- Categorization: start from a hierarchical Brazilian household taxonomy, assign each expense to exactly one active leaf category, and let users restructure categories. Improve future classification using household correction history before global category frequencies.
+- Categorization: start from a flat Brazilian household category list, assign each expense to exactly one active category, and let users create, rename, or merge categories. Improve future classification using household correction history before global category frequencies.
 - Primary success metric: categorization accuracy. For the demo MVP, 70% accuracy on the golden dataset is good enough for acceptance.
 - Categorization measurement: the system should provide a repeatable way to measure accuracy whenever needed, using a curated golden dataset and a report comparing expected categories against predicted categories.
 - Future password recovery: login/password should include password recovery by sending an email to the user.
@@ -210,7 +210,7 @@ These decision-driving findings must be represented in the PRD or explicitly def
 - **MRD-01 Shared household clarity**: one household view and low-friction expense entry are MVP needs; authenticated member identities, invitations, and role enforcement are future work.
 - **MRD-02 Low-friction input without bank access**: CSV and manual entry are MVP; direct bank/Open Finance integration is out of scope.
 - **MRD-03 Classification trust**: users need editable, explainable categories and a repeatable accuracy measure.
-- **MRD-04 Brazilian household taxonomy**: use familiar categories, permit household customization, and assign each expense to one leaf category so totals are unambiguous.
+- **MRD-04 Brazilian household taxonomy**: use familiar flat categories, permit household customization, and assign each expense to one category so totals are unambiguous.
 - **MRD-05 Grounded, nonjudgmental insight**: pt-BR explanations must cite supporting data and avoid financial advice.
 - **MRD-06 Sensitive-data control**: minimize LLM disclosure and provide export/deletion; production security controls precede real shared household data.
 - **MRD-07 Recurrence analysis**: recurrence is a separate expense attribute from cash/debit/credit payment method; detection can be simple in MVP and more advanced later.
@@ -249,7 +249,7 @@ These decision-driving findings must be represented in the PRD or explicitly def
 
 - Team: product/requirements owner, frontend engineer, backend engineer, integration engineer, QA engineer, and security reviewer per AAMAD workflow.
 - MVP timeline: 2-4 weeks for capstone scope if limited to CSV/manual entry, dashboard, categorization, and monthly insights.
-- Data requirements: sample CSV datasets, anonymized Brazilian household demo expenses in BRL, cash/debit/credit payment examples with an independent recurrence flag, and a hierarchical category taxonomy seeded from IBGE POF categories and common app-level categories.
+- Data requirements: sample CSV datasets, anonymized Brazilian household demo expenses in BRL, cash/debit/credit payment examples with an independent recurrence flag, and a flat category list informed by IBGE POF categories and common app-level categories.
 - Budget: low for capstone/local deployment; higher if adding hosted database, authentication, LLM API usage, or production sharing.
 
 ## Risk Assessment Matrix
@@ -274,7 +274,7 @@ These decision-driving findings must be represented in the PRD or explicitly def
 - Create `project-context/1.define/prd.md` from this MRD.
 - Define MVP user personas for Brazilian households, shared homes, couples, and families.
 - Define the CSV import format and sample file.
-- Draft the hierarchical category taxonomy using IBGE POF-inspired categories plus common app-level categories. For example, place `mercado` and `restaurantes` under `alimentacao`, and `assinaturas` under `lazer`; assign expenses only to leaf categories.
+- Use a flat list of IBGE POF-inspired categories plus common app-level categories. Categories such as `mercado`, `restaurantes`, and `assinaturas` are peers of `alimentacao` and `lazer`, and each is directly assignable.
 - Define explicit non-goals: bank integration, investment advice, tax advice, credit decisions, automated bank connection, and real-time financial coaching.
 - Create 30-50 anonymized Brazilian household sample expenses in BRL for design, QA, demo, and categorization accuracy testing. Include cash, debit, and credit payment methods, with recurrence represented independently as a true/false expense attribute.
 

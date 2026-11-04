@@ -6,7 +6,6 @@ from home_financial_backend.domain.errors import (
     AmbiguousCategoryLabel,
     CategoryNotFound,
     HouseholdNotFound,
-    ParentCategoryNotAssignable,
     UnknownCategoryLabel,
 )
 from home_financial_backend.domain.models import Category, Expense, Household
@@ -37,23 +36,30 @@ def test_demo_repositories_seed_one_household_and_standard_taxonomy() -> None:
 
     assert repositories.households.get_demo().id == DEMO_HOUSEHOLD_ID
     seeded = repositories.categories.list_by_household(DEMO_HOUSEHOLD_ID)
-    assert len(seeded) == 16
+    assert len(seeded) == 15
+    assert seeded[-1].id == "category-outros"
+    assert all(category.id != "category-impostos-taxas" for category in seeded)
     assert repositories.expenses.list_by_household(DEMO_HOUSEHOLD_ID) == ()
-    assert repositories.categories.resolve_active_leaf(DEMO_HOUSEHOLD_ID, "  MERCÁDO ").id == (
+    assert repositories.categories.resolve_active_category(DEMO_HOUSEHOLD_ID, "  MERCÁDO ").id == (
         "category-mercado"
     )
 
 
-def test_parent_categories_cannot_be_resolved_or_assigned() -> None:
+def test_every_active_category_can_be_resolved_and_assigned() -> None:
     repositories = create_demo_repositories()
 
-    with pytest.raises(ParentCategoryNotAssignable):
-        repositories.categories.resolve_active_leaf(DEMO_HOUSEHOLD_ID, "Alimentação")
-    with pytest.raises(ParentCategoryNotAssignable):
-        repositories.expenses.add(make_expense(category_id="category-alimentacao"))
+    category = repositories.categories.resolve_active_category(
+        DEMO_HOUSEHOLD_ID,
+        "Alimentação",
+    )
+    expense = repositories.expenses.add(
+        make_expense(category_id=category.id),
+    )
+
+    assert expense.category_id == "category-alimentacao"
 
 
-def test_expense_repository_enforces_household_and_active_leaf_scope() -> None:
+def test_expense_repository_enforces_household_and_active_category_scope() -> None:
     repositories = create_demo_repositories()
     added = repositories.expenses.add(make_expense())
 
@@ -74,7 +80,7 @@ def test_unknown_category_label_is_not_silently_resolved() -> None:
     repositories = create_demo_repositories()
 
     with pytest.raises(UnknownCategoryLabel):
-        repositories.categories.resolve_active_leaf(
+        repositories.categories.resolve_active_category(
             DEMO_HOUSEHOLD_ID,
             "Mercado e restaurante",
         )
@@ -87,7 +93,6 @@ def test_duplicate_category_labels_are_reported_as_ambiguous() -> None:
         household_id=DEMO_HOUSEHOLD_ID,
         canonical_key="mercado-duplicate",
         label="MERCADO",
-        parent_category_id="category-alimentacao",
     )
     from home_financial_backend.infrastructure.memory_repositories import (
         InMemoryCategoryRepository,
@@ -98,7 +103,7 @@ def test_duplicate_category_labels_are_reported_as_ambiguous() -> None:
         repositories.households,
     )
     with pytest.raises(AmbiguousCategoryLabel):
-        duplicate_labels.resolve_active_leaf(DEMO_HOUSEHOLD_ID, "mercado")
+        duplicate_labels.resolve_active_category(DEMO_HOUSEHOLD_ID, "mercado")
 
 
 def test_household_repository_requires_exactly_one_demo_household() -> None:

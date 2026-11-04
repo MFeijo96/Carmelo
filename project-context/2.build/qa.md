@@ -15,7 +15,7 @@ Build-phase verification of deterministic backend services, API routes, CrewAI b
 
 ## Acceptance Coverage
 
-- Expense validation, CSV row handling, active-leaf category rules, correction precedence, and exact monthly arithmetic are covered by backend tests.
+- Expense validation, CSV row handling, active-category validation, correction precedence, and exact monthly arithmetic are covered by backend tests.
 - Insight source membership, unsafe/ungrounded output rejection, pt-BR validation, timeout fallback, and deterministic fallback are covered.
 - The persisted merchant alias projection is covered for stability, hints/recurrence, exclusion of raw values from provider prompts, export exclusion, and deletion. OpenAPI drift is guarded in both the backend and frontend suites (mutation-checked).
 - Emulator-backed runs cover CSV import-to-dashboard, persistence, export, deletion, and alias handling.

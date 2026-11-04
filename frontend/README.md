@@ -24,7 +24,7 @@ For this workspace session, Node was downloaded and checksum-verified in `/tmp/n
 
 ## Use
 
-Enter a fictitious expense date, description, BRL value (for example `123,45`), active leaf category or **Automatica**, payment method, and optional recurrence. Categories load from the backend. **Executar** posts the expense, then reads the deterministic monthly dashboard and review status. Insights are generated only through **Gerar insights do mês** in the **Despesas** tab. The API, not the browser, owns classification and financial totals.
+Enter a fictitious expense date, description, BRL value (for example `123,45`), active category or **Automatica**, payment method, and optional recurrence. Categories load from the backend. **Executar** posts the expense, then reads the deterministic monthly dashboard and review status. Insights are generated only through **Gerar insights do mês** in the **Despesas** tab. The API, not the browser, owns classification and financial totals.
 
 The top banner shows **Crew: idle**, **Crew: running**, **Crew: done**, or **Crew: error**. `Atualizado em` advances on client workflow and service responses. Backend validation errors appear inline. **Tentar novamente** retries the original input; if the expense was created but its dashboard request failed, the client reuses that record instead of posting a duplicate.
 
@@ -64,4 +64,4 @@ The [functional spec](../project-context/2.build/frontend-funcional-spec.md) def
 - 2026-10-09; frontend.eng; document-frontend-setup. Tools: apply_patch, npm tests/build/audit, browser verification. Runtime: crewai (not invoked). Model: GitHub Copilot; temperature/max_tokens not exposed. Prompt Trace omitted for this local synthetic prototype.
 - 2026-10-09; frontend.eng; sync-run-controls. Updated fixed mock behavior, Run/Reset/Retry, status text, and observability deferrals; no commit created.
 - 2026-10-09; frontend.eng; sync-status-banner. Documented the shared labels/colors, derived error display, and real client update timestamp; no commit created.
-- 2026-10-12; integration.eng; connect-fastapi. Replaced fixed default results with expense/dashboard/insight API responses, loaded active-leaf categories, and retained the run FSM/retry/history UX. No commit created.
+- 2026-10-12; integration.eng; connect-fastapi. Replaced fixed default results with expense/dashboard/insight API responses, loaded active categories, and retained the run FSM/retry/history UX. No commit created.

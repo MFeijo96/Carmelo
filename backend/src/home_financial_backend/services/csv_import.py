@@ -14,7 +14,6 @@ from home_financial_backend.domain.errors import (
     AmbiguousCategoryLabel,
     CSVRowInvalid,
     CSVStructureError,
-    ParentCategoryNotAssignable,
     UnknownCategoryLabel,
 )
 from home_financial_backend.domain.models import ImportRowError, ImportRun, PaymentMethod
@@ -191,22 +190,15 @@ class CSVImportService:
         raw_category = values.get("categoria", "").strip()
         if raw_category:
             try:
-                category_id = self._categories.resolve_active_leaf(
+                category_id = self._categories.resolve_active_category(
                     household_id,
                     raw_category,
                 ).id
-            except ParentCategoryNotAssignable:
-                invalid(
-                    "categoria",
-                    "parent_category_not_assignable",
-                    "Selecione uma categoria final, não um grupo.",
-                    raw_category,
-                )
             except (UnknownCategoryLabel, AmbiguousCategoryLabel):
                 invalid(
                     "categoria",
                     "category_not_found_or_ambiguous",
-                    "A categoria informada não corresponde a uma categoria final única.",
+                    "A categoria informada não corresponde a uma categoria única.",
                     raw_category,
                 )
 

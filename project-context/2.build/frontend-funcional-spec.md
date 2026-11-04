@@ -6,7 +6,7 @@ One React/TypeScript/Vite route (`/`) for a local, synthetic-data expense workfl
 
 ## Inputs
 
-- Required: valid calendar date, trimmed description (1-120 characters), positive BRL amount (maximum R$ 999.999,99), payment method (`dinheiro`, `debito`, `credito`), and either an active leaf category or the `Automatica` categorization mode.
+- Required: valid calendar date, trimmed description (1-120 characters), positive BRL amount (maximum R$ 999.999,99), payment method (`dinheiro`, `debito`, `credito`), and either an active category or the `Automatica` categorization mode.
 - Amount uses Brazilian notation: `1234,56` or `1.234,56`; at most two decimal places. Convert to integer cents, never floating-point currency arithmetic.
 - Optional recurring checkbox, initially unchecked, independent of payment method.
 - Categories load from `GET /categories`; manual values are backend category IDs and only active leaves are selectable. A separate `Automatica` option has an empty frontend value and is sent as `category_id: null`; it is never created or stored as a taxonomy category. Existing manual defaults are unchanged. The seeded taxonomy includes Mercado and Restaurantes below Alimentação, Assinaturas and Entretenimento below Lazer, and standalone top-level leaves.
@@ -31,7 +31,7 @@ One React/TypeScript/Vite route (`/`) for a local, synthetic-data expense workfl
 - CSV is uploaded as a raw UTF-8 request body with `Content-Type: text/csv`; the UI displays imported/rejected counts and row-level validation errors.
 - Expense review filters by month, category, minimum confidence, payment method, source, and review-needed status. Results use 100-row pages with total count and previous/next controls; category selection calls `PATCH /expenses/{expense_id}/category`.
 - Monthly insight generation calls `POST /insights/monthly` only after clicking `Gerar insights do mês` in the Despesas tab. Loading the tab, saving/importing expenses and correcting categories do not generate insights. The button remains disabled while busy, while checking reviews, when reviews are pending, or when the month has no expenses.
-- Category settings create leaves under top-level groups, rename custom leaves, and merge custom leaves into an active leaf. Standard categories are not offered for rename or merge.
+- Category settings create custom categories using a unique name only, rename custom categories, and merge custom categories into any other active category. Standard categories are not offered as merge sources.
 - CSV and JSON exports download backend-generated content. Deletion targets the demo household only and requires browser confirmation; successful deletion clears visible run history.
 - Evaluation calls the deterministic backend endpoint and displays correct/total, accuracy, pass/fail, and confusion-entry count.
 - Trace: PRD AC-P0.2/P0.5/P0.6/P0.9/P0.10; SAD API and deterministic service boundaries.
@@ -54,7 +54,7 @@ One React/TypeScript/Vite route (`/`) for a local, synthetic-data expense workfl
 
 ## Acceptance Checks
 
-- Unit tests: BRL parsing/validation, FSM stale transitions, failure/retry/reset, API request fields/envelopes, dashboard result mapping, active-leaf filtering, backend error propagation, and retry without duplicate POST.
+- Unit tests: BRL parsing/validation, FSM stale transitions, failure/retry/reset, API request fields/envelopes, dashboard result mapping, active-category filtering, backend error propagation, and retry without duplicate POST.
 - Component tests: expense run/history plus CSV report, review-filter query mapping, expense correction, category create/rename/merge, evaluation display, export actions, and confirmation before deletion.
 - Basic accessibility includes native labeled controls, semantic headings, visible focus, and keyboard navigation. Full WCAG/screen-reader audits are deferred.
 - Run `npm test`, `npm run build`, and `npm audit` in `frontend/`. Backend integration requires a loopback API and synthetic records; emulator persistence remains a separate backend gate.

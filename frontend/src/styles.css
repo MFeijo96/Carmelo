@@ -103,8 +103,9 @@ p {
 }
 
 main {
+    width: min(1180px, calc(100% - 48px));
     max-width: 1180px;
-    margin: 0 auto;
+    margin-inline: auto;
     padding: 35px 0 20px;
 }
 
@@ -165,11 +166,11 @@ h1 {
 
 .input-section {
     border-right: 1px solid var(--line);
-    padding: 25px 28px 28px 0;
+    padding: 25px 28px 28px 24px;
 }
 
 .results-section {
-    padding: 25px 0 28px 32px;
+    padding: 25px 24px 28px 32px;
     min-width: 0;
 }
 
@@ -1040,12 +1041,6 @@ footer {
     }
 }
 
-@media (max-width: 1240px) {
-    main {
-        margin: 0 30px;
-    }
-}
-
 @media (max-width: 900px) {
     .workbench {
         grid-template-columns: 300px minmax(0, 1fr);
@@ -1071,7 +1066,6 @@ footer {
 
 @media (max-width: 650px) {
     main {
-        margin: 0 20px;
         padding-top: 25px;
     }
 
@@ -1107,13 +1101,13 @@ footer {
     }
 
     .input-section {
-        padding: 22px 0 25px;
+        padding: 22px 20px 25px;
         border-right: 0;
         border-bottom: 1px solid var(--line);
     }
 
     .results-section {
-        padding: 25px 0;
+        padding: 25px 20px;
     }
 
     .empty-result {

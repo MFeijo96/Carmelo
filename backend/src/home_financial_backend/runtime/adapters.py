@@ -22,10 +22,10 @@ class CrewAIClassificationFallback:
     def __call__(
         self,
         safe_context: SafeClassificationContext,
-        active_leaf_taxonomy: tuple[Category, ...],
+        active_categories: tuple[Category, ...],
     ) -> ClassificationCandidate:
         try:
-            category_options = {token_urlsafe(12): category for category in active_leaf_taxonomy}
+            category_options = {token_urlsafe(12): category for category in active_categories}
             crew = build_classification_crew(
                 self._llm,
                 tracing_enabled=self._tracing_enabled,
@@ -34,7 +34,7 @@ class CrewAIClassificationFallback:
                 output = crew.kickoff(
                     inputs={
                         "safe_context": safe_context.model_dump(mode="json"),
-                        "active_leaf_taxonomy": [
+                        "active_categories": [
                             {"category_id": token, "label": category.label}
                             for token, category in category_options.items()
                         ],

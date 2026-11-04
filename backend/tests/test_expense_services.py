@@ -131,7 +131,7 @@ def test_most_specific_deterministic_rule_wins_over_shorter_rule() -> None:
     assert expense.review_required is False
 
 
-def test_entertainment_rule_targets_an_active_leaf_category() -> None:
+def test_entertainment_rule_targets_an_active_category() -> None:
     _, _, expense_service = make_services()
 
     expense = expense_service.create_manual(
@@ -218,9 +218,6 @@ def test_global_correction_frequency_only_breaks_household_tie() -> None:
             update={
                 "id": f"other-{category.id}",
                 "household_id": second_household.id,
-                "parent_category_id": (
-                    f"other-{category.parent_category_id}" if category.parent_category_id else None
-                ),
             }
         )
         for category in demo_categories
@@ -373,7 +370,7 @@ def test_unresolved_or_ambiguous_classification_falls_back_to_outros_for_review(
     assert decision.review_required is True
 
 
-def test_csv_import_keeps_valid_rows_and_rejects_parent_category_row() -> None:
+def test_csv_import_accepts_any_active_category_and_keeps_valid_rows() -> None:
     repositories, _, expense_service = make_services()
     importer = CSVImportService(
         categories=repositories.categories,
@@ -391,13 +388,15 @@ def test_csv_import_keeps_valid_rows_and_rejects_parent_category_row() -> None:
     result = importer.import_text(DEMO_HOUSEHOLD_ID, content, "despesas.csv")
     expenses = repositories.expenses.list_by_household(DEMO_HOUSEHOLD_ID)
 
-    assert (result.total_rows, result.imported_rows, result.rejected_rows) == (4, 2, 2)
-    assert len(result.row_errors) == 2
-    assert result.row_errors[0].row == 3
-    assert result.row_errors[0].field == "categoria"
-    assert result.row_errors[1].field == "forma_pagamento"
-    assert sorted(expense.amount_cents for expense in expenses) == [3590, 123456]
+    assert (result.total_rows, result.imported_rows, result.rejected_rows) == (4, 3, 1)
+    assert len(result.row_errors) == 1
+    assert result.row_errors[0].row == 5
+    assert result.row_errors[0].field == "forma_pagamento"
+    assert sorted(expense.amount_cents for expense in expenses) == [1200, 3590, 123456]
     assert next(expense for expense in expenses if expense.amount_cents == 123456).recurring is True
+    assert next(expense for expense in expenses if expense.amount_cents == 1200).category_id == (
+        "category-alimentacao"
+    )
     assert next(expense for expense in expenses if expense.amount_cents == 3590).category_id == (
         "category-restaurantes"
     )

@@ -5,10 +5,10 @@ import WorkspaceTools from './WorkspaceTools'
 import type { HouseholdCategory, HouseholdExpense, HouseholdService } from './services/household'
 
 const categories: HouseholdCategory[] = [
-    { id: 'food', label: 'Alimentação', parent_category_id: null, is_active: true, is_standard: true },
-    { id: 'market', label: 'Mercado', parent_category_id: 'food', is_active: true, is_standard: true },
-    { id: 'other', label: 'Outros', parent_category_id: null, is_active: true, is_standard: true },
-    { id: 'custom', label: 'Refeições', parent_category_id: 'food', is_active: true, is_standard: false },
+    { id: 'food', label: 'Alimentação', is_active: true, is_standard: true },
+    { id: 'market', label: 'Mercado', is_active: true, is_standard: true },
+    { id: 'other', label: 'Outros', is_active: true, is_standard: true },
+    { id: 'custom', label: 'Refeições', is_active: true, is_standard: false },
 ]
 
 const expense: HouseholdExpense = {
@@ -30,7 +30,7 @@ function serviceMock(): HouseholdService {
             title: 'Resumo do mês', text: 'As despesas foram registradas.', sources: [],
             providerStatus: 'failed' as const, providerErrorCode: 'rate_limit' as const,
         })),
-        createCategory: vi.fn(async label => ({ id: 'created', label, parent_category_id: 'food', is_active: true, is_standard: false })),
+        createCategory: vi.fn(async label => ({ id: 'created', label, is_active: true, is_standard: false })),
         renameCategory: vi.fn(async (id, label) => ({ ...categories[3], id, label })),
         mergeCategories: vi.fn(async () => categories[2]),
         exportCsv: vi.fn(async () => new Blob(['data'])),
@@ -42,6 +42,20 @@ function serviceMock(): HouseholdService {
 }
 
 describe('household operations', () => {
+    it('places the Importar tab last', () => {
+        render(<WorkspaceTools service={serviceMock()} />)
+
+        expect(screen.getAllByRole('tab').map(tab => tab.textContent?.trim())).toEqual([
+            'Despesas',
+            'Categorias',
+            'Dados',
+            'Avaliação',
+            'Importar',
+        ])
+        expect(screen.getByRole('tab', { name: 'Despesas' })).toHaveAttribute('aria-selected', 'true')
+        expect(screen.getByRole('heading', { name: 'Revisar despesas' })).toBeInTheDocument()
+    })
+
     it('opens the pending-review tab when requested from the result screen', async () => {
         const service = serviceMock()
         const { rerender } = render(<WorkspaceTools service={service} reviewRequest={0} />)
@@ -85,6 +99,7 @@ describe('household operations', () => {
         const user = userEvent.setup()
         const service = serviceMock()
         render(<WorkspaceTools service={service} />)
+        await user.click(screen.getByRole('tab', { name: 'Importar' }))
         await screen.findByRole('heading', { name: 'Importar despesas CSV' })
         await user.upload(screen.getByLabelText('Arquivo CSV'), new File(['data,descricao'], 'casa.csv', { type: 'text/csv' }))
         await user.click(screen.getByRole('button', { name: 'Importar arquivo' }))
@@ -127,15 +142,16 @@ describe('household operations', () => {
         expect(service.generateInsights).toHaveBeenCalledOnce()
     })
 
-    it('creates a child category under a top-level category', async () => {
+    it('creates a category using its name only', async () => {
         const user = userEvent.setup()
         const service = serviceMock()
         render(<WorkspaceTools service={service} />)
         await user.click(screen.getByRole('tab', { name: 'Categorias' }))
         await user.type(screen.getByLabelText('Nova categoria'), 'Feira')
-        await user.click(screen.getByRole('button', { name: 'Criar folha' }))
+        expect(screen.queryByLabelText('Grupo')).not.toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Criar categoria' }))
 
-        await waitFor(() => expect(service.createCategory).toHaveBeenCalledWith('Feira', 'food'))
+        await waitFor(() => expect(service.createCategory).toHaveBeenCalledWith('Feira'))
         expect(await screen.findByText('Categoria criada.')).toBeInTheDocument()
     })
 

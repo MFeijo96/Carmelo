@@ -17,6 +17,26 @@ const apiResponse = (body: unknown, status = 200) => ({
 })
 
 describe('household API service', () => {
+    it('creates a category with only its label', async () => {
+        const category = {
+            id: 'category-custom-1',
+            label: 'Feira',
+            is_active: true,
+            is_standard: false,
+        }
+        const fetchMock = vi.fn().mockResolvedValue(apiResponse(envelope({ category }), 201))
+        vi.stubGlobal('fetch', fetchMock)
+
+        await expect(householdService.createCategory('Feira')).resolves.toEqual(category)
+        expect(fetchMock).toHaveBeenCalledWith(
+            'http://127.0.0.1:8000/categories',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ label: 'Feira' }),
+            }),
+        )
+    })
+
     it('uploads raw CSV and maps the import report envelope', async () => {
         const csv = 'data,descricao,valor,forma_pagamento\n12/10/2026,Compra,12,50,credito'
         const file = { name: 'casa.csv', text: async () => csv } as File

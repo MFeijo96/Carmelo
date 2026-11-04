@@ -50,9 +50,8 @@ class ExpenseCreateRequest(ApiContract):
 
 class CategoryCreateRequest(ApiContract):
     label: str = Field(min_length=1, max_length=80)
-    parent_category_id: str = Field(min_length=1)
 
-    @field_validator("label", "parent_category_id")
+    @field_validator("label")
     @classmethod
     def trim_required_text(cls, value: str) -> str:
         value = value.strip()

@@ -194,7 +194,7 @@ class ExpenseService:
         expense = self._expenses.get_for_household(expense_id, household_id)
         if expense is None:
             raise CategoryNotFound("Expense not found in household")
-        self._categories.require_active_leaf(household_id, category_id)
+        self._categories.require_active_category(household_id, category_id)
         decision = ClassificationDecision(
             id=uuid4().hex,
             household_id=household_id,

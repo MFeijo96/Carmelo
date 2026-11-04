@@ -39,7 +39,6 @@ class Category(DomainModel):
     household_id: str = Field(min_length=1)
     canonical_key: str = Field(min_length=1)
     label: str = Field(min_length=1)
-    parent_category_id: str | None = None
     is_standard: bool = True
     is_active: bool = True
     schema_version: str = "1.0"

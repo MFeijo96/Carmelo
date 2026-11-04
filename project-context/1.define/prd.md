@@ -105,7 +105,7 @@ Users need the product to support the following jobs:
 5. System normalizes values into BRL, dates, payment methods, and merchant/description fields.
 6. System classifies expenses into editable categories with confidence scores.
 7. User reviews low-confidence or important category assignments.
-8. User corrects categories and optionally restructures the category taxonomy.
+8. User corrects categories and can create, rename, or merge household categories.
 9. Dashboard shows monthly totals, category breakdown, payment method mix, recurring expenses, and month-over-month changes.
 10. System generates Portuguese educational insights grounded in deterministic summaries and source expenses.
 11. User exports or deletes local/demo data when desired.
@@ -140,7 +140,7 @@ Direct and indirect alternatives include spreadsheets, banking dashboards, card 
 | MRD-01: Shared household clarity | P0.1 workspace, P0.3 manual entry, P0.7 dashboard | One shared local/demo workspace; authenticated members, invitations, roles, and personal action history are deferred to P2. |
 | MRD-02: Low-friction input without bank access | P0.2 CSV import, P0.3 manual entry; P2 Future Features | CSV/manual input is in MVP; bank and Open Finance integration are out of scope. |
 | MRD-03: Classification trust and measurable quality | P0.4 classification, P0.5 correction, P0.6 taxonomy, P0.10 evaluation | Editable and explainable classification with a repeatable golden-dataset gate. |
-| MRD-04: Brazilian household taxonomy | P0.4 taxonomy, P0.6 category editing | Hierarchical taxonomy; each expense maps to exactly one active leaf category. |
+| MRD-04: Brazilian household taxonomy | P0.4 taxonomy, P0.6 category editing | Flat category list; every active category can be assigned to an expense. |
 | MRD-05: Grounded, nonjudgmental insights | P0.8 insights; sections 5 and 6 safety/tone requirements | pt-BR insights cite supporting data and avoid advice. |
 | MRD-06: Sensitive-data control | P0.8.6-P0.8.7 LLM data minimization, P0.9 export/deletion, section 5 Security & Compliance | Privacy controls are MVP requirements; production controls gate real shared household use. |
 | MRD-07: Recurrence analysis | P0.2/P0.3 recurrence input, P0.7 dashboard; P1 recurring detection | Recurrence is modeled separately from payment method; advanced detection is P1. |
@@ -173,8 +173,8 @@ Recommended agent collaboration pattern:
 #### agent: categorization_agent
 
 - **role**: Expense classification specialist.
-- **goal**: Propose an active leaf category only for ambiguity unresolved by the Python classification service's rules and history.
-- **tools**: Configured LLM with service-supplied active-leaf taxonomy and allow-listed alias-safe context; no direct repositories.
+- **goal**: Propose an active category only for ambiguity unresolved by the Python classification service's rules and history.
+- **tools**: Configured LLM with service-supplied active categories and allow-listed alias-safe context; no direct repositories.
 - **runtime notes**: Must emit `ClassificationDecision` through `output_pydantic`, including category, confidence, reason, source, and review flag; max_iter=1 and no delegation. Deterministic classification remains measurable without invoking this agent.
 
 #### service: aggregation_service
@@ -263,7 +263,7 @@ The MVP domain model must support, at minimum:
 - AC-P0.2.5: Invalid rows produce clear validation messages without blocking valid rows unless the file is structurally invalid.
 - AC-P0.2.6: Import results show total rows, imported rows, rejected rows, and error details.
 - AC-P0.2.7: Recurrence is independent of payment method. The optional `recorrente` field accepts `sim` or `nao` (case-insensitive after trimming whitespace); omitted values default to `nao`.
-- AC-P0.2.8: When `categoria` is present and non-empty, it must match exactly one active leaf-category label after trimming whitespace and comparing case- and accent-insensitively. A parent category, unknown label, or ambiguous match rejects only that row with a validation error naming the field and supplied value; it must not create a category, silently map to `outros`, or invoke the classifier. Blank or omitted `categoria` invokes normal classification. The user can correct the value or create the category in category settings before re-importing; other valid rows still import.
+- AC-P0.2.8: When `categoria` is present and non-empty, it must match exactly one active category label after trimming whitespace and comparing case- and accent-insensitively. An unknown label or ambiguous match rejects only that row with a validation error naming the field and supplied value; it must not create a category, silently map to `outros`, or invoke the classifier. Blank or omitted `categoria` invokes normal classification. The user can correct the value or create the category in category settings before re-importing; other valid rows still import.
 
 #### P0.3 Manual Expense Entry
 
@@ -283,12 +283,12 @@ The MVP domain model must support, at minimum:
 
 **Acceptance criteria**:
 
-- AC-P0.4.1: The initial taxonomy is hierarchical. Top-level categories include moradia, alimentacao, transporte, saude, educacao, contas da casa, lazer, dividas, pets, impostos/taxas, cuidados pessoais, and outros. At minimum, `alimentacao` has leaf categories `mercado` and `restaurantes`; `assinaturas` is a leaf under `lazer`. Each expense is assigned to exactly one active leaf category; parent categories are roll-up groups and cannot be assigned directly to expenses.
+- AC-P0.4.1: The initial category list is flat: `moradia`, `alimentacao`, `transporte`, `saude`, `educacao`, `contas da casa`, `lazer`, `dividas`, `pets`, `cuidados pessoais`, `entretenimento`, `mercado`, `restaurantes`, `assinaturas`, and `outros`. Every active category is independently assignable to an expense; categories have no parent or child relationships.
 - AC-P0.4.2: For rows accepted by validation, classification follows this precedence: (1) a valid category explicitly supplied by the user (CSV category matching follows AC-P0.2.8); (2) an exact household correction matching normalized merchant and description; (3) the most-specific unambiguous deterministic keyword/rule match; (4) household correction frequency, with global category frequency used only as a tie-breaker; (5) optional LLM fallback for unresolved ambiguous cases. If no decisive result is available and LLM fallback is unavailable, assign `outros` and flag the expense for review.
 - AC-P0.4.3: Household-specific correction evidence takes precedence over global category frequencies; neither frequency source may override an explicit user category, an exact household correction, or an unambiguous deterministic rule.
-- AC-P0.4.4: Each classifier-produced decision stores one active leaf category, a confidence score from 0.0 to 1.0, a reason, and the decision source. User-supplied categories are recorded as user overrides.
+- AC-P0.4.4: Each classifier-produced decision stores one active category, a confidence score from 0.0 to 1.0, a reason, and the decision source. User-supplied categories are recorded as user overrides.
 - AC-P0.4.5: Classifier-produced decisions with confidence below 0.70 are marked review-needed and shown in the review list. The score is a decision-confidence heuristic, not a calibrated probability.
-- AC-P0.4.6: MVP acceptance requires top-1 accuracy of at least 70%, calculated as exact predicted canonical leaf-category matches divided by total golden-dataset records. Report the numerator and denominator; run acceptance evaluation outside CrewAI with LLM fallback disabled and zero provider calls. Mocked provider tests are separate fallback contract tests, not acceptance evaluation.
+- AC-P0.4.6: MVP acceptance requires top-1 accuracy of at least 70%, calculated as exact predicted canonical category matches divided by total golden-dataset records. Report the numerator and denominator; run acceptance evaluation outside CrewAI with LLM fallback disabled and zero provider calls. Mocked provider tests are separate fallback contract tests, not acceptance evaluation.
 
 #### P0.5 Category Review and Correction
 
@@ -309,9 +309,9 @@ The MVP domain model must support, at minimum:
 **Acceptance criteria**:
 
 - AC-P0.6.1: User can view the category list.
-- AC-P0.6.2: User can create a household-specific leaf category under an existing top-level category; arbitrary nesting and user-created parent categories are out of scope.
-- AC-P0.6.3: User can rename household-specific leaf categories; standard top-level categories and standard leaf categories retain their canonical identities for evaluation.
-- AC-P0.6.4: User can merge household-specific leaf categories into an existing active leaf category. Parent categories cannot be merged or assigned to expenses.
+- AC-P0.6.2: User can create a household-specific category by providing a unique name only; no group or parent selection is required.
+- AC-P0.6.3: User can rename household-specific categories; standard categories retain their canonical identities for evaluation.
+- AC-P0.6.4: User can merge a household-specific category into any other active category. Standard categories cannot be merged as the source.
 - AC-P0.6.5: User can reassign expenses from one category to another.
 - AC-P0.6.6: Existing expenses remain linked to valid categories after category changes.
 - AC-P0.6.7: Category changes do not remove the ability to run golden-dataset evaluation against the standard taxonomy.
@@ -365,7 +365,7 @@ The MVP domain model must support, at minimum:
 
 **Acceptance criteria**:
 
-- AC-P0.10.1: A golden dataset of 30-50 anonymized Brazilian household expenses is available for QA and demo use, with expected categories expressed as canonical leaf categories.
+- AC-P0.10.1: A golden dataset of 30-50 anonymized Brazilian household expenses is available for QA and demo use, with expected categories expressed as canonical category IDs.
 - AC-P0.10.2: Each golden dataset record includes expected category, date, description, amount, payment method (`dinheiro`, `debito`, or `credito`), and an independent recurrence flag.
 - AC-P0.10.3: The evaluation command or UI action runs the classifier against the dataset.
 - AC-P0.10.4: The report shows total records, correct predictions, incorrect predictions, accuracy percentage, and category-level confusion details.
@@ -670,7 +670,7 @@ Commercial launch, monetization, and pricing are future work. Before public prod
 - Currency is BRL only.
 - Demo payment methods are cash, debit, and credit; recurrence is an independent optional expense attribute.
 - The MVP has one shared local/demo household workspace with no individual identities, invitations, role enforcement, or personal action history; production shared-household access is future work.
-- Expenses are assigned to one active leaf category in a hierarchy; parent categories are roll-up groups only.
+- Categories form a flat list; each expense is assigned to one active category.
 - Classifier confidence is a 0.0-1.0 heuristic; decisions below 0.70 are flagged for review.
 - Insights are generated through the OpenAI API when configured, using `gpt-4o-mini` as the default model and deterministic fallback summaries when unavailable.
 - Firebase Firestore free tier is the later remote database choice; Week 3 runs against emulator/in-memory repositories without a cloud project or ADC, with an emulator persistence/export/deletion gate before cloud connection.

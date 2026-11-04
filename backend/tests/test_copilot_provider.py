@@ -276,7 +276,7 @@ def test_real_crewai_classification_validates_and_restores_opaque_category(sdk) 
         )
 
     sdk.response = respond
-    category = create_demo_repositories().categories.require_active_leaf(
+    category = create_demo_repositories().categories.require_active_category(
         DEMO_HOUSEHOLD.id,
         "category-mercado",
     )

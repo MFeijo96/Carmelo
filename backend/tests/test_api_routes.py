@@ -57,12 +57,15 @@ def test_rest_workflow_routes_share_one_demo_household_and_envelope(monkeypatch)
 
     categories = client.get("/categories")
     assert categories.status_code == 200
+    assert categories.json()["data"]["categories"][-1]["id"] == "category-outros"
     created_category = client.post(
         "/categories",
-        json={"label": "Refeições fora", "parent_category_id": "category-alimentacao"},
+        json={"label": "Refeições fora"},
     )
     assert created_category.status_code == 201
+    assert client.get("/categories").json()["data"]["categories"][-1]["id"] == "category-outros"
     custom_id = created_category.json()["data"]["category"]["id"]
+    assert "parent_category_id" not in created_category.json()["data"]["category"]
     renamed = client.patch(
         f"/categories/{custom_id}",
         json={"label": "Refeições e lanches"},
@@ -113,7 +116,10 @@ def test_rest_workflow_routes_share_one_demo_household_and_envelope(monkeypatch)
 
 
 def test_request_validation_returns_shared_pt_br_error_envelope() -> None:
-    response = client.post("/expenses", json={"amount_cents": -2})
+    response = client.post(
+        "/categories",
+        json={"label": "Feira", "parent_category_id": "category-alimentacao"},
+    )
 
     assert response.status_code == 422
     body = response.json()

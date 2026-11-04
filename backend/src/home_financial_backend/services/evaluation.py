@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from home_financial_backend.domain.errors import (
     CategoryNotFound,
     EvaluationUnavailable,
-    ParentCategoryNotAssignable,
 )
 from home_financial_backend.domain.models import (
     EVALUATION_THRESHOLD,
@@ -101,11 +100,11 @@ class EvaluationService:
         correct = 0
         for index, record in enumerate(dataset.records):
             try:
-                category = self._categories.require_active_leaf(
+                category = self._categories.require_active_category(
                     household_id,
                     record.expected_category_id,
                 )
-            except (CategoryNotFound, ParentCategoryNotAssignable) as error:
+            except CategoryNotFound as error:
                 raise EvaluationUnavailable(
                     "Golden dataset contains an invalid expected category."
                 ) from error

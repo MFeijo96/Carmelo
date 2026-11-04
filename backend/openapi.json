@@ -507,17 +507,6 @@
             "title": "Label",
             "type": "string"
           },
-          "parent_category_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Category Id"
-          },
           "schema_version": {
             "default": "1.0",
             "title": "Schema Version",
@@ -617,16 +606,10 @@
             "minLength": 1,
             "title": "Label",
             "type": "string"
-          },
-          "parent_category_id": {
-            "minLength": 1,
-            "title": "Parent Category Id",
-            "type": "string"
           }
         },
         "required": [
-          "label",
-          "parent_category_id"
+          "label"
         ],
         "title": "CategoryCreateRequest",
         "type": "object"

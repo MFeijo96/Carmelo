@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from home_financial_backend.domain.errors import CategoryNotFound, HouseholdNotFound
+from home_financial_backend.domain.errors import HouseholdNotFound
 from home_financial_backend.domain.models import Category, utc_now
 from home_financial_backend.domain.normalization import normalize_text
 from home_financial_backend.domain.repositories import (
@@ -28,10 +28,7 @@ class CategoryService:
         self._expenses = expenses
         self._decisions = decisions
 
-    def create(self, household_id: str, label: str, parent_category_id: str) -> Category:
-        parent = self._categories.get_for_household(parent_category_id, household_id)
-        if parent is None or not parent.is_active or parent.parent_category_id is not None:
-            raise CategoryNotFound("Choose an active top-level category")
+    def create(self, household_id: str, label: str) -> Category:
         normalized_key = normalize_text(label).replace(" ", "-")
         if not normalized_key:
             raise ValueError("Category label cannot be blank")
@@ -41,13 +38,12 @@ class CategoryService:
             household_id=household_id,
             canonical_key=f"custom-{category_id.removeprefix('category-custom-')}",
             label=label,
-            parent_category_id=parent.id,
             is_standard=False,
         )
         return self._categories.add(category)
 
     def rename(self, household_id: str, category_id: str, label: str) -> Category:
-        category = self._categories.require_active_leaf(household_id, category_id)
+        category = self._categories.require_active_category(household_id, category_id)
         if category.is_standard:
             raise ValueError("Standard category labels cannot be changed")
         return self._categories.update(category.model_copy(update={"label": label.strip()}))
@@ -58,7 +54,7 @@ class CategoryService:
         source_category_id: str,
         target_category_id: str,
     ) -> Category:
-        _, target = self._categories.merge_custom_leaf(
+        _, target = self._categories.merge_custom(
             household_id,
             source_category_id,
             target_category_id,
@@ -72,10 +68,13 @@ class CategoryService:
         return target
 
     def list(self, household_id: str) -> tuple[Category, ...]:
-        return tuple(
+        active_categories = (
             category
             for category in self._categories.list_by_household(household_id)
             if category.is_active
+        )
+        return tuple(
+            sorted(active_categories, key=lambda category: category.canonical_key == "outros")
         )
 
 

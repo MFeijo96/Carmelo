@@ -1,7 +1,7 @@
 classification_task:
   description: >-
-    Resolve the ambiguity using {safe_context} and {active_leaf_taxonomy}. Select only a supplied
-    active leaf category and return a reasoned decision. Do not infer or calculate financial totals.
+    Resolve the ambiguity using {safe_context} and {active_categories}. Select only a supplied
+    active category and return a reasoned decision. Do not infer or calculate financial totals.
   expected_output: >-
     ClassificationDecision with category_id, confidence from 0 to 1, reason, source set to
     llm_fallback, and review_required.

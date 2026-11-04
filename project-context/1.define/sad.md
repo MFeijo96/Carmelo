@@ -20,6 +20,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 - Use CrewAI only for unresolved classification ambiguity and insight writing from precomputed summaries. Ingestion, aggregation, and evaluation are ordinary Python services outside the Crew.
 - Prefer explainability over automation opacity: each classification and insight must expose its source, reason, confidence, and supporting data.
 - Minimize sensitive data sent to LLM providers by always using aggregated summaries and an allow-listed alias-safe context.
+- Keep the household category taxonomy flat: every category is an independent, directly assignable name; no category groups, parents, or children are created.
 - Provide exactly one shared local/demo household workspace without login, member identities, household selection, or role enforcement. Keep production authentication and membership as future domain extensions; do not present the demo as suitable for real financial data.
 - Never send raw merchant/payee values or reversible alias mappings to an LLM provider. Send only an allow-listed projection containing a fictitious alias, business-context description, category hints, and aggregate recurrence behavior.
 - Design for repeatable QA: golden-dataset evaluation, deterministic fallbacks, schema validation, and traceability to PRD acceptance criteria.
@@ -90,6 +91,7 @@ This SAD translates the PRD and MRD into a high-level technical architecture for
 | AD-05 | Use the official GitHub Copilot Python SDK through a custom CrewAI-compatible LLM adapter for optional classification and insight generation | Keeps CrewAI as the selected orchestration runtime while using Copilot account authentication and model access; the SDK is not a drop-in OpenAI/LiteLLM endpoint | Use the authenticated local Copilot CLI in development or an explicitly configured Copilot token for automation; keep credentials server-side, bound calls, and use deterministic fallbacks; Copilot usage is charged to the authenticated account/organization's AI Credits allowance; PRD P0.4, P0.8 |
 | AD-06 | Run the app/API locally and do not expose an unauthenticated hosted service | The MVP has one shared workspace and no identity or authorization boundary | Synthetic data only; Cloud Firestore remains backend-only; future hosting requires route-level access control; PRD P0.1, Security & Compliance |
 | AD-07 | Never send raw merchant/payee values, original descriptions, or reversible mappings to an LLM provider | Minimize disclosure while still supporting useful merchant-aware insights | Always build a separate allow-listed alias-safe projection; no raw-value opt-in or server gate exists |
+| AD-08 | Use a flat household category list; category creation requires only a unique name | The operator wants direct category creation without selecting or managing a group | All standard and custom categories are peers and directly assignable; categories have no parent/child relation and aggregate by category ID only. The current standard categories are Moradia, Alimentação, Transporte, Saúde, Educação, Contas da casa, Lazer, Dívidas, Pets, Cuidados pessoais, Entretenimento, Mercado, Restaurantes, Assinaturas, and Outros; `Outros` remains last and is the fallback category. The PRD and MRD have been reconciled to this decision. |
 
 ### Architecture Views
 
@@ -121,7 +123,7 @@ flowchart LR
 | Repository interfaces | Read/write domain records | Isolate Firestore-specific code |
 | CrewAI LLM adapter and Copilot SDK | Translate CrewAI generation requests into Copilot SDK sessions and return model text to CrewAI for typed-output validation | No Copilot tools or memory for these calls; server-side authentication; bounded request/session lifecycle; deterministic fallback on failure |
 
-**Rationale / analysis**: This separates user interaction, business rules, orchestration, and storage. The extra orchestration boundary is retained only where the PRD calls for agent-assisted classification and explanation; deterministic domain services remain authoritative.
+**Rationale / analysis**: This separates user interaction, business rules, orchestration, and storage. The extra orchestration boundary is retained only where the PRD calls for agent-assisted classification and explanation; deterministic domain services remain authoritative. Category lists are flat: a category name is independently selectable, and no UI or service requires a parent/group selection.
 
 #### Process / Runtime View
 
@@ -213,8 +215,8 @@ flowchart TB
 | Data element / collection | Key relationships | Sensitivity / lifecycle |
 | --- | --- | --- |
 | `households` | One seeded demo household; parent scope for all MVP records | Retained empty after demo-data deletion |
-| `expenses` | References household and one active leaf category | Sensitive; exported/deleted with household data |
-| `categories` | Household taxonomy, optional parent category | Standard categories retain canonical identity |
+| `expenses` | References household and one active category | Sensitive; exported/deleted with household data |
+| `categories` | Flat household category list; no parent/group relationship | Standard categories retain canonical identity |
 | `imports` | Import run metadata and row errors | Household-scoped; no uploaded file secrets retained |
 | `classification_decisions` | Expense, source, confidence, reason, correction | Needed for explainability and learning; deleted with demo data |
 | `insight_runs` | Month, summary version/hash, outputs, provider/safety metadata | Avoid raw prompt/expense text; deleted with demo data |
@@ -228,7 +230,7 @@ flowchart TB
 
 - Every UI operation maps to one documented FastAPI route, one application service, and a deterministic domain/use-case result.
 - Every repository operation is scoped to the single demo `household_id`; persisted documents carry the same identifier.
-- Every category reference in a stored expense resolves to one active leaf in the data view; parent categories are roll-up-only.
+- Every category reference in a stored expense resolves to one active category in the flat data view; each category is independently assignable.
 - The runtime view's aggregation step calls deterministic functions; the logical view's agents cannot author numeric totals or override validated domain results.
 - Every LLM insight source reference resolves through backend-held IDs/alias maps to source data; an LLM cannot invent or restore source identifiers.
 - The deployment view permits provider and Firestore access only from the backend; the browser receives API responses, not credentials or direct data-store access.
@@ -253,9 +255,9 @@ The PRD's P0 feature sections contain the available user-story statements and ar
 | PRD story / acceptance IDs | Architectural elements | Verification |
 | --- | --- | --- |
 | P0.1 / AC-P0.1.1-AC-P0.1.5 | Demo household service, local-only deployment, no identity/role enforcement | Demo access/API tests; deployment bind check |
-| P0.2 / AC-P0.2.1-AC-P0.2.8 | CSV ingestion, validation, category resolver, import repositories | Import unit/integration tests including invalid and parent categories |
+| P0.2 / AC-P0.2.1-AC-P0.2.8 | CSV ingestion, validation, flat category resolver, import repositories | Import unit/integration tests including invalid and ambiguous category names |
 | P0.3 / AC-P0.3.1-AC-P0.3.5 | Manual expense API, validation, expense repository | Manual-entry-to-dashboard integration test |
-| P0.4-P0.6 / AC-P0.4.1-AC-P0.6.7 | Taxonomy, classifier, correction history, category APIs | Precedence, leaf validation, correction, and evaluation tests |
+| P0.4-P0.6 / AC-P0.4.1-AC-P0.6.7 | Flat taxonomy, classifier, correction history, category APIs | Precedence, active-category validation, correction, and evaluation tests |
 | P0.7 / AC-P0.7.1-AC-P0.7.6 | Deterministic aggregation service and dashboard API | Arithmetic and month-comparison tests; EC-003 |
 | P0.8 / AC-P0.8.1-AC-P0.8.7 | Insight service, provider abstraction, alias map, safety validator | Grounding, safety, privacy, timeout/fallback tests; EC-004, EC-005, EC-009, EC-011 |
 | P0.9 / AC-P0.9.1-AC-P0.9.9 | Export services, per-collection deletion, confirmation UI | Archive/export/delete integration tests; EC-012 |
@@ -270,7 +272,7 @@ The MVP uses exactly two specialized CrewAI agents. Ingestion, classification pr
 
 | Agent | Role | Goal | Inputs | Outputs | Tool Access |
 | --- | --- | --- | --- | --- | --- |
-| `categorization_agent` | Ambiguous expense classification specialist | Propose one active leaf category only after deterministic precedence is exhausted | Allow-listed alias-safe context and active-leaf taxonomy supplied by the service | `ClassificationDecision` | Configured LLM only; no repository, arithmetic, or evaluation tools |
+| `categorization_agent` | Ambiguous expense classification specialist | Propose one active category only after deterministic precedence is exhausted | Allow-listed alias-safe context and flat active-category list supplied by the service | `ClassificationDecision` | Configured LLM only; no repository, arithmetic, or evaluation tools |
 | `insight_agent` | Portuguese educational insight writer | Explain a precomputed summary without changing its numbers | Deterministic monthly summary, opaque source-group tokens, allow-listed alias-safe context, safety policy | `InsightCard` | Configured LLM only; no repository, arithmetic, or evaluation tools |
 
 The Python aggregation service reads expenses and calculates exact totals, breakdowns, comparisons, source groups, and recurrence summaries. The Python evaluation service loads the golden set, runs the deterministic classifier with LLM disabled, and computes exact-label counts, confusion details, and pass/fail. Neither is registered as a CrewAI agent or task.
@@ -281,7 +283,7 @@ Primary expense flow:
 
 1. Frontend sends CSV rows or manual expense input to backend API.
 2. Ingestion service validates schema, date, BRL amount, payment method (`dinheiro`, `debito`, or `credito`), and recurrence (`sim`/`nao`, separate from payment method).
-3. If `categoria` is non-empty, ingestion resolves its trimmed, case- and accent-insensitive label against exactly one active leaf in `CategoryRepository`. Unknown, ambiguous, or parent-category values reject only that row with a field-specific error; they are never auto-created, mapped to `outros`, or sent to classification. Blank or omitted categories continue to classification.
+3. If `categoria` is non-empty, ingestion resolves its trimmed, case- and accent-insensitive label against exactly one active category in `CategoryRepository`. Unknown or ambiguous values reject only that row with a field-specific error; they are never auto-created or mapped to `outros`. Blank or omitted categories continue to classification.
 4. Normalization service creates canonical expense records associated with the single demo household.
 5. Categorization service applies user-category, exact-correction, deterministic-rule, and frequency precedence. Only unresolved ambiguity may invoke `categorization_agent`, using the allow-listed projection; unavailable or invalid output yields `outros` with review required.
 6. Repository layer persists expenses, decisions, import metadata, and correction history.
@@ -294,7 +296,7 @@ Expected behavior:
 - Import validation preserves valid rows when other rows fail, unless the CSV structure itself is invalid.
 - Agent outputs use typed schemas and are rejected when required fields are missing.
 - Classifier decisions with confidence below `0.70` are flagged for review; confidence is a 0.0-1.0 heuristic, not a calibrated probability.
-- Classification precedence is: valid user-supplied leaf category; exact household correction for normalized merchant and description; most-specific unambiguous deterministic rule; household correction frequency with global frequency only as a tie-breaker; optional LLM fallback for unresolved ambiguity. If no result is available and LLM fallback is unavailable, assign `outros` and flag for review.
+- Classification precedence is: valid user-supplied category; exact household correction for normalized merchant and description; most-specific unambiguous deterministic rule; household correction frequency with global frequency only as a tie-breaker; optional LLM fallback for unresolved ambiguity. If no result is available and LLM fallback is unavailable, assign `outros` and flag for review.
 - User corrections update expenses, create correction records, and influence future household-specific classification.
 - Insight generation timeout or provider failure returns deterministic fallback summaries.
 - Golden-dataset acceptance evaluation runs entirely outside the Crew with LLM fallback disabled and zero provider calls. Any separate LLM experiment is not used for the deterministic acceptance report.
@@ -312,7 +314,7 @@ Expected behavior:
 # config/agents.yaml
 categorization_agent:
   role: Ambiguous expense classifier
-  goal: Select one supplied active leaf using only the safe context
+  goal: Select one supplied active category using only the safe context
   backstory: Resolve ambiguity without inventing categories or source data
   allow_delegation: false
   max_iter: 1
@@ -328,7 +330,7 @@ insight_agent:
 # config/tasks.yaml
 classification_task:
   agent: categorization_agent
-  description: Resolve the ambiguity using {safe_context} and {active_leaf_taxonomy}
+  description: Resolve the ambiguity using {safe_context} and {active_categories}
   expected_output: ClassificationDecision containing category_id, confidence, reason, source, and review_required
 insight_task:
   agent: insight_agent
@@ -337,7 +339,7 @@ insight_task:
 ```
 
 - Bind `classification_task.output_pydantic=ClassificationDecision` and `insight_task.output_pydantic=InsightCard` in the Python task factory; these are model classes, not YAML string values. Bind the configured provider/model in Python. Use `Task.context` only for actual selected-task dependencies; never run classification merely to enable an insight.
-- `ClassificationDecision` requires `category_id` (string resolving to a supplied active leaf), `confidence` (number in [0, 1]), `reason` (non-empty string), `source` (literal `llm_fallback` for this task), and `review_required` (boolean). The service enforces review below 0.70 and validates category membership before persistence. Deterministic decisions use the same domain schema with their own source values outside the Crew.
+- `ClassificationDecision` requires `category_id` (string resolving to a supplied active category), `confidence` (number in [0, 1]), `reason` (non-empty string), `source` (literal `llm_fallback` for this task), and `review_required` (boolean). The service enforces review below 0.70 and validates category membership before persistence. Deterministic decisions use the same domain schema with their own source values outside the Crew.
 - `InsightCard` requires non-empty `title` and `text` in pt-BR and a non-empty `source_refs` list of opaque tokens from the supplied source groups. Reject extra schema fields; raw values, reversible mappings, and internal record IDs are never supplied to the model. The backend alone resolves these tokens to trusted UI source references.
 - Pydantic validation is necessary but not sufficient: services verify source membership, grounding against precomputed values, and the safety policy before display. Missing/invented sources or investment, credit, tax, affordability, or prescriptive advice reject the card and trigger deterministic fallback; the model cannot self-certify safety.
 - Error handling: retry transient provider failures once where appropriate; otherwise return structured errors and deterministic fallbacks.
@@ -401,10 +403,10 @@ Recommended API modules:
 - `POST /expenses`: creates manual expense.
 - `GET /expenses`: lists expenses by household, month, category, confidence, payment method, and source filters.
 - `PATCH /expenses/{expense_id}/category`: applies user category correction.
-- `GET /categories`: lists the current household's standard and custom taxonomy, including parent/leaf relationships.
-- `POST /categories`: creates a household-specific leaf under an existing top-level category.
-- `PATCH /categories/{category_id}`: renames or updates a household-specific leaf; standard category identities remain canonical.
-- `POST /categories/merge`: merges household-specific leaves into an active leaf and reassigns expenses; parent categories cannot be merge targets.
+- `GET /categories`: lists the current household's standard and custom categories as a flat list.
+- `POST /categories`: creates a household-specific category from a name-only body such as `{"label":"Streaming"}`; no group or parent is selected.
+- `PATCH /categories/{category_id}`: renames a household-specific category; standard category identities remain canonical.
+- `POST /categories/merge`: merges a household-specific category into any other active category and reassigns expenses.
 - `GET /dashboard/monthly`: returns deterministic monthly totals and breakdowns.
 - `POST /insights/monthly`: generates or refreshes monthly insights using structured summaries and the allow-listed alias-safe merchant-context projection; raw merchant/payee values and reversible mappings are never included.
 - `GET /exports/expenses.csv`: exports expenses using the import-compatible Portuguese schema.
@@ -427,7 +429,7 @@ API responses should use a consistent envelope:
 
 Validation errors should include row number when applicable, field name, machine-readable code, and pt-BR user message.
 
-For a structurally valid CSV, import responses include imported/rejected counts and row errors in the response envelope. A non-empty `categoria` must resolve case- and accent-insensitively, after trimming, to exactly one active leaf category for the household. Unknown, ambiguous, or parent-category values produce row errors with field `categoria`, the supplied value, and a machine code; that row is rejected and is not classified. Blank or omitted category values proceed to classification. Invalid rows do not prevent other valid rows from importing.
+For a structurally valid CSV, import responses include imported/rejected counts and row errors in the response envelope. A non-empty `categoria` must resolve case- and accent-insensitively, after trimming, to exactly one active category for the household. Unknown or ambiguous values produce row errors with field `categoria`, the supplied value, and a machine code; that row is rejected and is not classified. Blank or omitted category values proceed to classification. Invalid rows do not prevent other valid rows from importing. Category creation is a separate explicit action and accepts a name only.
 
 ### Data Architecture
 
@@ -438,8 +440,8 @@ Core entities:
 - `Household`
 - `HouseholdMembership`
 - `Role`
-- `Category`: canonical identity and label, household scope, nullable `parent_category_id`, and active status. A category is assignable only when it is an active leaf; parent categories are roll-up groups.
-- `Expense`: date, description, BRL amount, merchant/payee, category leaf id, payment method (`dinheiro`, `debito`, or `credito`), independent recurrence boolean, source, confidence score, and user override flag.
+- `Category`: canonical identity and label, household scope, and active status. Categories have no parent/group relationship and every active category is assignable.
+- `Expense`: date, description, BRL amount, merchant/payee, category id, payment method (`dinheiro`, `debito`, or `credito`), independent recurrence boolean, source, confidence score, and user override flag.
 - `ImportRun`
 - `ClassificationDecision`
 - `InsightRun`
@@ -458,7 +460,7 @@ Repository boundaries:
 - `EvaluationRunRepository`
 - `MerchantContextRepository`
 
-`CategoryRepository` owns category-label resolution, hierarchy validation, and active-leaf checks. It rejects non-unique label matches and prevents parent categories from being assigned to expenses. Aggregation sums leaf totals into their parent groups without double-counting parent and leaf rows.
+`CategoryRepository` owns category-name uniqueness, active-category lookup, and assignment validation; it rejects ambiguous labels and inactive or unknown category IDs. Category creation accepts only a name and produces one independent category. Aggregation reports each category's totals directly by category ID; there are no parent roll-ups or group totals. During migration, preserve category IDs and expense references, make existing standard categories peers, and remove obsolete parent references from stored category records.
 
 Store household-owned records in top-level Firestore collections partitioned by `household_id`; this supports indexed household queries and explicit per-collection deletion without relying on recursive subcollection deletion. Use `households` for household records and dedicated collections for expenses, categories, imports, classification decisions, insight runs, evaluation runs, merchant contexts, and LLM data maps. Each record must carry `household_id`, timestamps, schema version, and data source metadata where relevant. Add user and membership collections when production authentication is implemented.
 
@@ -527,7 +529,7 @@ Logs must avoid plaintext sensitive descriptions and raw merchant/payee names wh
 
 1. User uploads CSV in the frontend.
 2. Backend validates required columns: `data`, `descricao`, `valor`, and `forma_pagamento`; validates payment method values (`dinheiro`, `debito`, `credito`) and recurrence values (`sim`, `nao`, default `nao`).
-3. For a non-empty `categoria`, backend resolves one active leaf by trimmed, case- and accent-insensitive label. Unknown, ambiguous, or parent-category labels reject that row with a field-specific validation error; no category is created and the row is not classified. Blank/omitted categories proceed to classification.
+3. For a non-empty `categoria`, backend resolves one active category by trimmed, case- and accent-insensitive label. Unknown or ambiguous labels reject that row with a field-specific validation error; no category is implicitly created and the row is not classified. Blank/omitted categories proceed to classification.
 4. Backend normalizes dates, BRL values, descriptions, merchants, recurrence flags, and notes.
 5. Categorization applies the defined precedence and review threshold when no valid user category was supplied.
 6. Valid expenses, row errors, import report, and classification decisions are persisted.
@@ -537,13 +539,13 @@ Logs must avoid plaintext sensitive descriptions and raw merchant/payee names wh
 
 1. User submits manual expense form.
 2. Backend validates required fields and BRL amount.
-3. A selected category must be an active leaf; otherwise, the categorization service generates a suggestion under the defined precedence and confidence policy.
+3. A selected category must be active; otherwise, the categorization service generates a suggestion under the defined precedence and confidence policy.
 4. Expense appears in dashboard and review list.
 
 ### Category Correction to Learning
 
 1. User changes an expense category.
-2. Backend verifies the selected category is an active leaf, then records the user override and correction decision.
+2. Backend verifies the selected category is active, then records the user override and correction decision.
 3. Monthly totals are recalculated from deterministic data.
 4. Household correction history influences future classifications.
 
@@ -559,9 +561,9 @@ Logs must avoid plaintext sensitive descriptions and raw merchant/payee names wh
 
 ### Evaluation
 
-1. The Python evaluation service, outside the Crew, loads 30-50 anonymized golden records with expected canonical leaf-category IDs.
+1. The Python evaluation service, outside the Crew, loads 30-50 anonymized golden records with expected canonical category IDs.
 2. The deterministic classifier predicts categories with LLM fallback disabled; no Crew kickoff or provider call is allowed in acceptance evaluation. Provider mocks belong to separate fallback contract tests, not the golden acceptance run.
-3. Evaluator counts exact top-1 canonical leaf-category matches; accuracy is `correct / total`.
+3. Evaluator counts exact top-1 canonical category matches; accuracy is `correct / total`.
 4. Report includes total records, correct/incorrect counts, accuracy percentage, category-level confusion details, and pass/fail at 70%.
 
 ## 7. Performance & Scalability Specifications
@@ -619,10 +621,10 @@ Before production shared household use, the project must add:
 
 ### Test Strategy
 
-- Unit tests for CSV parsing, date parsing, BRL normalization, payment/recurrence validation, category label resolution, parent/leaf constraints, classifier precedence, the 0.70 review threshold, correction history lookup, aggregation arithmetic, export formatting, deletion behavior, and insight safety validators.
-- Integration tests for partial CSV import with unknown/parent/ambiguous category values, valid category import, manual expense to dashboard, category correction to recalculated totals, allow-list projection and unconditional raw-value/mapping exclusion, insight fallback, and export/delete flows.
+- Unit tests for CSV parsing, date parsing, BRL normalization, payment/recurrence validation, category name uniqueness and lookup, name-only category creation, classifier precedence, the 0.70 review threshold, correction history lookup, flat category aggregation, export formatting, deletion behavior, and insight safety validators.
+- Integration tests for partial CSV import with unknown/ambiguous category values, valid category import, manual expense to dashboard, name-only category creation, category correction to recalculated totals, allow-list projection and unconditional raw-value/mapping exclusion, insight fallback, and export/delete flows.
 - Evaluation tests for golden-dataset categorization accuracy, identical repeated reports, and zero Crew/provider calls with LLM disabled.
-- Contract tests for API envelopes, strict `ClassificationDecision`/`InsightCard` outputs, active-leaf checks, source membership, and deterministic fallback on missing sources or unsafe advice.
+- Contract tests for API envelopes, strict `ClassificationDecision`/`InsightCard` outputs, active-category checks, source membership, and deterministic fallback on missing sources or unsafe advice.
 - Configuration tests assert exactly two agents, sequential process, disabled memory/delegation, classifier max_iter=1, and insight max_iter<=2.
 - Emulator acceptance tests prove persistence across repository recreation, CSV/JSON export, and deletion of all household-owned records while retaining the demo household; no cloud project or ADC is needed. Emulator-mode startup must fail when its host is missing.
 - Security checks using Gitleaks for committed secrets, `pip-audit` and `npm audit` for dependencies, plus tests for unsafe logging patterns and LLM prompt data minimization.
@@ -631,7 +633,7 @@ Before production shared household use, the project must add:
 
 | ID | Dimension | Metric | Threshold | Grading Method | Source |
 |----|-----------|--------|-----------|-----------------|--------|
-| EC-001 | Accuracy | Exact top-1 canonical leaf-category accuracy (`correct / total`) on golden dataset with LLM fallback disabled | >= 70% | Python evaluator outside Crew; report counts and confusion; assert zero Crew/provider calls | PRD P0.4.6, P0.10 |
+| EC-001 | Accuracy | Exact top-1 canonical category accuracy (`correct / total`) on golden dataset with LLM fallback disabled | >= 70% | Python evaluator outside Crew; report counts and confusion; assert zero Crew/provider calls | PRD P0.4.6, P0.10 |
 | EC-002 | Import Reliability | Valid rows imported from sample CSV | >= 95% valid rows imported; invalid rows reported without blocking valid rows | Integration test with sample CSV | PRD P0.2, Product Metrics |
 | EC-003 | Dashboard Correctness | Deterministic arithmetic for totals, percentages, payment-method breakdowns, and month-over-month comparison | 100% expected results in unit tests | Code-based unit tests | PRD P0.7, Technical Metrics |
 | EC-004 | Insight Grounding | Generated or fallback insights include supporting category, date range, or source-expense reference | 100% of accepted insights | Schema validation plus QA review | PRD P0.8, Product Metrics |
@@ -709,6 +711,7 @@ Post-demo iteration priorities:
 - Official [Copilot SDK authentication](https://github.com/github/copilot-sdk/blob/main/docs/auth/authenticate.md) and [backend services setup](https://github.com/github/copilot-sdk/blob/main/docs/setup/backend-services.md)
 - Official [GitHub Copilot model pricing and AI Credits](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)
 - Professor review supplied by the operator on 2026-10-06: two model-backed agents only, fixed CrewAI contracts, unconditional allow-list privacy, and emulator-first Week 3.
+- Operator decision on 2026-11-04: use a flat category list, and require only a name when creating a category.
 
 ## Assumptions
 
@@ -737,7 +740,7 @@ Post-demo iteration priorities:
 - Timestamp: 2026-09-28
 - Persona id: system-arch
 - Action: update-sad
-- Artifact: aligned demo access, category import/classification, hierarchy, evaluation, and raw-merchant consent with PRD
+- Artifact: aligned demo access, flat category import/classification, evaluation, and raw-merchant consent with PRD
 - Timestamp: 2026-09-28
 - Persona id: system-arch
 - Action: security-boundary-update
@@ -766,3 +769,12 @@ Post-demo iteration priorities:
 - Tool usage: targeted document reads/searches and apply_patch; focused consistency checks and aamad validation when available
 - Model/temperature/max_tokens: no application LLM execution; model identity and generation controls not exposed by the editor session
 - Prompt Trace: omitted; documentation-only revision with no financial records, secrets, or provider calls
+- Timestamp: 2026-11-04
+- Persona id: system-arch
+- Action: flat-category-architecture-update
+- Artifact: replaced category parent/child relationships with a flat standard and custom category list; category creation requires a unique name only; documented direct aggregation by category and preserved category IDs during migration
+- Source: operator decision; updated PRD and MRD acceptance criteria to reflect the flat category list
+- Tool usage: targeted SAD/PRD/MRD reads and edits, implementation and contract update, consistency validation
+- Model/temperature/max_tokens: no application LLM execution; model identity and generation controls not exposed by the editor session
+- Prompt Trace: omitted; documentation-only revision with no financial records, secrets, or provider calls
+- Delegation note: the configured System Architect agent could not access repository files; the SAD was updated directly under its artifact contract.

@@ -38,7 +38,6 @@ type MonthlyDashboard = {
 type CategoryRecord = {
     id: string
     label: string
-    parent_category_id: string | null
     is_active: boolean
 }
 
@@ -116,14 +115,11 @@ export function createApiRunService(
 
     async function getCategories(): Promise<CategoryOption[]> {
         const data = await request<{ categories: CategoryRecord[] }>(baseUrl, '/categories')
-        const parentIds = new Set(
-            data.categories.flatMap(category => category.parent_category_id ?? []),
-        )
-        const activeLeaves = data.categories
-            .filter(category => category.is_active && !parentIds.has(category.id))
+        const activeCategories = data.categories
+            .filter(category => category.is_active)
             .map(({ id, label }) => ({ id, label }))
-        allowedCategoryIds = activeLeaves.map(category => category.id)
-        return activeLeaves
+        allowedCategoryIds = activeCategories.map(category => category.id)
+        return activeCategories
     }
 
     async function getHistory(): Promise<RunResult[]> {

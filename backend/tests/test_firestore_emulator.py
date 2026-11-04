@@ -152,6 +152,37 @@ def test_firestore_csv_import_is_visible_in_monthly_dashboard(firestore_reposito
     assert dashboard.recurring_cents == 12550
 
 
+def test_firestore_bootstrap_removes_legacy_category_parent_without_losing_records(
+    firestore_repositories,
+) -> None:
+    client, repositories, _ = firestore_repositories
+    category_id = "category-mercado"
+    expense = Expense(
+        id="legacy-category-expense",
+        household_id=DEMO_HOUSEHOLD.id,
+        date=date(2026, 10, 12),
+        description="Compra preservada",
+        amount_cents=12550,
+        payment_method="credito",
+        category_id=category_id,
+        source="manual",
+    )
+    repositories.expenses.add(expense)
+    client.collection("categories").document(category_id).update(
+        {"parent_category_id": "category-alimentacao"}
+    )
+
+    migrated = create_firestore_demo_repositories(client)
+    category_document = client.collection("categories").document(category_id).get().to_dict()
+
+    assert category_document is not None
+    assert "parent_category_id" not in category_document
+    category = migrated.categories.get_for_household(category_id, DEMO_HOUSEHOLD.id)
+    assert category is not None
+    assert category.label == "Mercado"
+    assert migrated.expenses.get_for_household(expense.id, DEMO_HOUSEHOLD.id) == expense
+
+
 def test_firestore_persistence_exports_and_deletion(firestore_repositories) -> None:
     client, repositories, clear_demo = firestore_repositories
     expense = Expense(

@@ -9,7 +9,6 @@ export const categoryOptions = [
     { id: 'category-assinaturas', label: 'Assinaturas' },
     { id: 'category-dividas', label: 'Dívidas' },
     { id: 'category-pets', label: 'Pets' },
-    { id: 'category-impostos-taxas', label: 'Impostos/taxas' },
     { id: 'category-cuidados-pessoais', label: 'Cuidados pessoais' },
     { id: 'category-outros', label: 'Outros' },
 ] as const

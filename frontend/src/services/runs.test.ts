@@ -64,9 +64,9 @@ describe('API run service', () => {
         const fetchMock = vi.fn()
             .mockResolvedValueOnce(apiResponse(envelope({
                 categories: [
-                    { id: 'category-alimentacao', label: 'Alimentação', parent_category_id: null, is_active: true },
-                    { id: 'category-mercado', label: 'Mercado', parent_category_id: 'category-alimentacao', is_active: true },
-                    { id: 'category-archived', label: 'Antiga', parent_category_id: 'category-alimentacao', is_active: false },
+                    { id: 'category-alimentacao', label: 'Alimentação', is_active: true },
+                    { id: 'category-mercado', label: 'Mercado', is_active: true },
+                    { id: 'category-archived', label: 'Antiga', is_active: false },
                 ],
             })))
             .mockResolvedValueOnce(apiResponse(envelope({
@@ -203,20 +203,19 @@ describe('API run service', () => {
                     {
                         id: 'category-mercado',
                         label: 'Mercado',
-                        parent_category_id: null,
                         is_active: true,
                     },
                 ]
             })))
             .mockResolvedValueOnce(apiResponse(envelope(null, [{
-                code: 'ParentCategoryNotAssignable',
-                message: 'Selecione uma categoria final, não um grupo.',
+                code: 'category_not_found',
+                message: 'A categoria ativa não foi encontrada.',
             }]), 422))
         vi.stubGlobal('fetch', fetchMock)
         const service = createApiRunService('http://api.test')
         await service.getCategories?.()
 
-        await expect(service.startRun(input)).rejects.toThrow('Selecione uma categoria final')
+        await expect(service.startRun(input)).rejects.toThrow('A categoria ativa não foi encontrada.')
         await expect(service.getRunStatus('missing')).rejects.toThrow('Execução não encontrada')
     })
 

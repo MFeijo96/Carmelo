@@ -115,7 +115,7 @@ def test_evaluation_report_is_repeatable_except_for_run_metadata(tmp_path) -> No
     )
 
 
-@pytest.mark.parametrize("category_id", ["category-does-not-exist", "category-lazer"])
+@pytest.mark.parametrize("category_id", ["category-does-not-exist"])
 def test_evaluation_rejects_invalid_expected_category_without_saving_result(
     tmp_path,
     category_id,

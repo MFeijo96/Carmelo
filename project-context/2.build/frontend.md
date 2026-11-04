@@ -9,7 +9,7 @@
 - `src/services/runs.ts`: default service loads categories, calls `POST /expenses`, and reads `GET /dashboard/monthly` plus the month's pending-review count. Expense submission never requests monthly insights. `createRunService` remains a fixture for UI state tests only.
 - `src/services/household.ts` and `src/WorkspaceTools.tsx`: typed API operations for CSV import, paginated expense filters/correction, category create/rename/merge, CSV/JSON export, confirmed data deletion, and golden evaluation.
 - Monthly insight generation is manual-only via `Gerar insights do mês` in the Despesas tab, retaining review/loading/empty-month guards; saving an expense shows the deterministic totals summary without waiting for insight generation.
-- `src/App.tsx`: dynamically loads active leaf categories, validates inputs, keeps Run/Reset/Retry and history UX, and renders backend totals, expense, insight, and source summary.
+- `src/App.tsx`: dynamically loads active categories, validates inputs, keeps Run/Reset/Retry and history UX, and renders backend totals, expense, insight, and source summary.
 - A top live banner displays `Crew: idle/running/done/error`, with gray/blue/green/red indicators. Error is a presentation of service/validation errors; the FSM remains idle/running/done.
 - `Atualizado em` is a client timestamp updated on mount, Run/Retry, service responses, errors, and Reset.
 - History has unique client request IDs and submitted input snapshots. A pending successful POST is reused on same-request retry if the dashboard request fails, preventing a duplicate expense.

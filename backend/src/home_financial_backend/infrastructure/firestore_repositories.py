@@ -13,7 +13,6 @@ from home_financial_backend.domain.errors import (
     DuplicateRecord,
     ExpenseNotFound,
     HouseholdNotFound,
-    ParentCategoryNotAssignable,
     UnknownCategoryLabel,
 )
 from home_financial_backend.domain.models import (
@@ -46,6 +45,8 @@ def _model_data(model: BaseModel) -> dict[str, Any]:
 def _from_snapshot(snapshot, model_type: type[RecordT]) -> RecordT:
     payload = snapshot.to_dict() or {}
     payload.setdefault("id", snapshot.id)
+    if model_type is Category:
+        payload.pop("parent_category_id", None)
     return model_type.model_validate(payload)
 
 
@@ -92,11 +93,6 @@ class FirestoreCategoryRepository:
         reference = self._collection.document(category.id)
         if reference.get().exists:
             raise DuplicateRecord("Category identifier already exists")
-        if category.parent_category_id is None:
-            raise CategoryNotFound("Custom categories must be leaves under a top-level category")
-        parent = self.get_for_household(category.parent_category_id, category.household_id)
-        if parent is None or not parent.is_active or parent.parent_category_id is not None:
-            raise CategoryNotFound("Custom leaves must be under an active top-level category")
         self._ensure_unique_label(category.household_id, category.label)
         reference.set(_model_data(category))
         return category
@@ -116,24 +112,13 @@ class FirestoreCategoryRepository:
         category = _from_snapshot(snapshot, Category)
         return category if category.household_id == household_id else None
 
-    def is_active_leaf(self, household_id: str, category_id: str) -> bool:
-        category = self.get_for_household(category_id, household_id)
-        if category is None or not category.is_active:
-            return False
-        return not any(
-            child.is_active and child.parent_category_id == category_id
-            for child in self.list_by_household(household_id)
-        )
-
-    def require_active_leaf(self, household_id: str, category_id: str) -> Category:
+    def require_active_category(self, household_id: str, category_id: str) -> Category:
         category = self.get_for_household(category_id, household_id)
         if category is None or not category.is_active:
             raise CategoryNotFound("Active category not found in household")
-        if not self.is_active_leaf(household_id, category_id):
-            raise ParentCategoryNotAssignable("Parent categories cannot be assigned to expenses")
         return category
 
-    def resolve_active_leaf(self, household_id: str, label: str) -> Category:
+    def resolve_active_category(self, household_id: str, label: str) -> Category:
         normalized = normalize_text(label)
         if not normalized:
             raise UnknownCategoryLabel("Category label cannot be blank")
@@ -146,7 +131,7 @@ class FirestoreCategoryRepository:
             raise UnknownCategoryLabel(f"Unknown category label: {label}")
         if len(matches) > 1:
             raise AmbiguousCategoryLabel(f"Ambiguous category label: {label}")
-        return self.require_active_leaf(household_id, matches[0].id)
+        return self.require_active_category(household_id, matches[0].id)
 
     def update(self, category: Category) -> Category:
         existing = self.get_for_household(category.id, category.household_id)
@@ -160,14 +145,14 @@ class FirestoreCategoryRepository:
         self._collection.document(category.id).set(_model_data(category))
         return category
 
-    def merge_custom_leaf(
+    def merge_custom(
         self,
         household_id: str,
         source_category_id: str,
         target_category_id: str,
     ) -> tuple[Category, Category]:
-        source = self.require_active_leaf(household_id, source_category_id)
-        target = self.require_active_leaf(household_id, target_category_id)
+        source = self.require_active_category(household_id, source_category_id)
+        target = self.require_active_category(household_id, target_category_id)
         if source.id == target.id:
             raise ValueError("Source and target categories must differ")
         if source.is_standard:
@@ -217,7 +202,7 @@ class FirestoreExpenseRepository:
     def add(self, expense: Expense) -> Expense:
         if self._households.get_by_id(expense.household_id) is None:
             raise HouseholdNotFound("Household not found")
-        self._categories.require_active_leaf(expense.household_id, expense.category_id)
+        self._categories.require_active_category(expense.household_id, expense.category_id)
         reference = self._collection.document(expense.id)
         try:
             reference.create(_model_data(expense))
@@ -229,7 +214,7 @@ class FirestoreExpenseRepository:
         current = self.get_for_household(expense.id, expense.household_id)
         if current is None:
             raise ExpenseNotFound("Expense not found in household")
-        self._categories.require_active_leaf(expense.household_id, expense.category_id)
+        self._categories.require_active_category(expense.household_id, expense.category_id)
         self._collection.document(expense.id).set(_model_data(expense))
         return expense
 
@@ -279,7 +264,7 @@ class FirestoreClassificationDecisionRepository:
             raise HouseholdNotFound("Household not found")
         if self._expenses.get_for_household(decision.expense_id, decision.household_id) is None:
             raise ExpenseNotFound("Classification decision references an unknown expense")
-        self._categories.require_active_leaf(decision.household_id, decision.category_id)
+        self._categories.require_active_category(decision.household_id, decision.category_id)
         reference = self._collection.document(decision.id)
         if reference.get().exists:
             raise DuplicateRecord("Classification decision identifier already exists")
@@ -441,9 +426,17 @@ def create_firestore_demo_repositories(client: firestore.Client) -> DemoReposito
     household_repository.get_demo()
 
     category_repository = FirestoreCategoryRepository(client, household_repository)
+    category_collection = client.collection("categories")
+    category_snapshots = category_collection.where(
+        filter=FieldFilter("household_id", "==", DEMO_HOUSEHOLD.id)
+    ).stream()
+    for snapshot in category_snapshots:
+        if "parent_category_id" in (snapshot.to_dict() or {}):
+            snapshot.reference.update({"parent_category_id": firestore.DELETE_FIELD})
+
     for category in build_demo_categories():
         if category_repository.get_for_household(category.id, category.household_id) is None:
-            client.collection("categories").document(category.id).set(_model_data(category))
+            category_collection.document(category.id).set(_model_data(category))
 
     expense_repository = FirestoreExpenseRepository(
         client,

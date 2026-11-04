@@ -29,10 +29,6 @@ class AmbiguousCategoryLabel(DomainError):
     pass
 
 
-class ParentCategoryNotAssignable(DomainError):
-    pass
-
-
 class DuplicateRecord(DomainError):
     pass
 

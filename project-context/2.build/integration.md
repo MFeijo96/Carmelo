@@ -22,7 +22,7 @@ Execute this plan in order, updating the flow evidence and open gaps below as ea
 2. **Trace expense input through storage.** Exercise manual entry and CSV import with valid, invalid, and mixed rows. Verify field-level errors, accepted/rejected counts, persisted records, category resolution, and that structurally invalid files do not partially write.
 3. **Close the human review loop for classification.** Verify classifier decisions below the PRD `0.70` confidence threshold and unresolved cases appear in the review list with their reason/source. Where low-confidence items or user corrections exist, require the user to review/correct them before presenting monthly insights as final. Confirm corrections are visibly distinguished, persisted as overrides, used by later classifications, and reflected in dashboard and insight inputs. Do not label the confidence score as a probability.
 4. **Verify deterministic monthly results and optional insights.** Check totals, category/payment breakdowns, recurrence, and comparisons against source expenses without relying on model output. When enabled, call OpenAI only through the backend provider abstraction for unresolved classification or insight writing; send only the SAD allow-listed alias-safe projection and precomputed summaries. Verify schema/source/safety checks and deterministic fallback when credentials are absent, output is invalid, or the provider times out.
-5. **Verify taxonomy, portability, and destructive actions.** Test category create/rename/merge and reassignment against active-leaf rules. Round-trip CSV using the documented schema; inspect JSON archive scope and metadata. Require explicit UI confirmation before deletion and verify deletion removes household-owned records without affecting other data.
+5. **Verify categories, portability, and destructive actions.** Test name-only category creation, rename/merge, and reassignment against active-category rules. Round-trip CSV using the documented schema; inspect JSON archive scope and metadata. Require explicit UI confirmation before deletion and verify deletion removes household-owned records without affecting other data.
 6. **Run the complete integration gate.** Run frontend tests/build, backend route/service tests, OpenAPI drift checks, golden evaluation with the LLM disabled, and emulator-backed persistence/export/deletion tests. Then smoke-test the browser against both in-memory and Firestore Emulator modes using synthetic data; capture failures, evidence, and remaining gaps here. Request QA and security review rather than recording their sign-off on their behalf.
 
 ### External Integration Scope And Gates
@@ -53,7 +53,7 @@ The frontend uses `/households/demo`, `/categories`, `/expenses`, `/imports/csv`
 
 - Manual expense creation followed by dashboard and best-effort insights when no review is pending; otherwise insight generation waits for review.
 - CSV upload with imported/rejected counts and row-level errors.
-- Monthly expense review, active-leaf correction, then explicit insight generation after pending review is cleared; category create/rename/merge.
+- Monthly expense review, active-category correction, then explicit insight generation after pending review is cleared; category create/rename/merge.
 - CSV/JSON download, confirmed demo-data deletion, and deterministic evaluation report.
 
 ## Verification

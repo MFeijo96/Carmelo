@@ -1,6 +1,6 @@
 categorization_agent:
   role: Ambiguous expense classifier
-  goal: Select one supplied active leaf using only the safe context
+  goal: Select one supplied active category using only the safe context
   backstory: Resolve ambiguity without inventing categories or source data
   allow_delegation: false
   max_iter: 1

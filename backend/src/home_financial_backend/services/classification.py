@@ -9,7 +9,6 @@ from home_financial_backend.domain.errors import (
     CategoryNotFound,
     FallbackUnavailable,
     HouseholdNotFound,
-    ParentCategoryNotAssignable,
 )
 from home_financial_backend.domain.models import (
     Category,
@@ -71,7 +70,6 @@ DEFAULT_RULES = (
     CategoryRule("category-assinaturas", ("assinatura", "streaming", "servico de streaming")),
     CategoryRule("category-dividas", ("financiamento", "parcela de emprestimo", "juros da divida")),
     CategoryRule("category-pets", ("veterinario", "racao", "pet shop")),
-    CategoryRule("category-impostos-taxas", ("ipva", "iptu", "taxa municipal")),
     CategoryRule("category-cuidados-pessoais", ("cabeleireiro", "barbearia", "higiene pessoal")),
     CategoryRule(
         "category-entretenimento",
@@ -106,7 +104,7 @@ class ClassificationService:
             raise HouseholdNotFound("Household has no categories")
 
         if item.explicit_category_id is not None:
-            category = self._categories.require_active_leaf(
+            category = self._categories.require_active_category(
                 item.household_id,
                 item.explicit_category_id,
             )
@@ -121,7 +119,7 @@ class ClassificationService:
 
         exact_correction = self._exact_household_correction(item)
         if exact_correction is not None:
-            category = self._categories.require_active_leaf(item.household_id, exact_correction)
+            category = self._categories.require_active_category(item.household_id, exact_correction)
             return self._decision(
                 item,
                 category,
@@ -151,7 +149,7 @@ class ClassificationService:
         else:
             category_id = None
         if category_id is not None:
-            category = self._categories.require_active_leaf(item.household_id, category_id)
+            category = self._categories.require_active_category(item.household_id, category_id)
             return self._decision(
                 item,
                 category,
@@ -172,7 +170,7 @@ class ClassificationService:
         else:
             category_id = None
         if category_id is not None:
-            category = self._categories.require_active_leaf(item.household_id, category_id)
+            category = self._categories.require_active_category(item.household_id, category_id)
             return self._decision(
                 item,
                 category,
@@ -186,7 +184,7 @@ class ClassificationService:
         if llm_decision is not None:
             return llm_decision
 
-        fallback_category = self._categories.require_active_leaf(
+        fallback_category = self._categories.require_active_category(
             item.household_id,
             "category-outros",
         )
@@ -274,7 +272,6 @@ class ClassificationService:
                 for category in self._categories.list_by_household(household_id)
                 if category.canonical_key == canonical_key
                 and category.is_active
-                and self._categories.is_active_leaf(household_id, category.id)
             ),
             None,
         )
@@ -297,7 +294,7 @@ class ClassificationService:
             return None
         category_id = next(iter(category_ids))
         try:
-            category = self._categories.require_active_leaf(item.household_id, category_id)
+            category = self._categories.require_active_category(item.household_id, category_id)
         except CategoryNotFound:
             return None
         term = max((match[2] for match in most_specific), key=len)
@@ -310,25 +307,23 @@ class ClassificationService:
     ) -> ClassificationDecision | None:
         if self._fallback_classifier is None or item.safe_context is None:
             return None
-        leaf_categories = tuple(
+        active_categories = tuple(
             category
             for category in household_categories
             if category.is_active
-            and self._categories.is_active_leaf(item.household_id, category.id)
         )
         try:
-            raw_candidate = self._fallback_classifier(item.safe_context, leaf_categories)
+            raw_candidate = self._fallback_classifier(item.safe_context, active_categories)
             if raw_candidate is None:
                 return None
             candidate = ClassificationCandidate.model_validate(raw_candidate)
-            category = self._categories.require_active_leaf(
+            category = self._categories.require_active_category(
                 item.household_id,
                 candidate.category_id,
             )
         except (
             ValidationError,
             CategoryNotFound,
-            ParentCategoryNotAssignable,
             FallbackUnavailable,
             OSError,
         ):
