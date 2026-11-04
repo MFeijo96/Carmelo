@@ -155,6 +155,50 @@ describe('household operations', () => {
         expect(await screen.findByText('Categoria criada.')).toBeInTheDocument()
     })
 
+    it('sends category changes to the parent after create, rename, and merge', async () => {
+        const user = userEvent.setup()
+        const service = serviceMock()
+        const onCategoriesChanged = vi.fn()
+        const savedCategories = [...categories]
+        vi.mocked(service.listCategories).mockImplementation(async () =>
+            savedCategories.filter(category => category.is_active),
+        )
+        vi.mocked(service.createCategory).mockImplementation(async label => {
+            const created = { id: 'created', label, is_active: true, is_standard: false }
+            savedCategories.push(created)
+            return created
+        })
+        vi.mocked(service.renameCategory).mockImplementation(async (id, label) => {
+            const renamed = savedCategories.find(category => category.id === id)!
+            renamed.label = label
+            return renamed
+        })
+        vi.mocked(service.mergeCategories).mockImplementation(async sourceId => {
+            const source = savedCategories.find(category => category.id === sourceId)!
+            source.is_active = false
+            return categories[0]
+        })
+
+        render(<WorkspaceTools service={service} onCategoriesChanged={onCategoriesChanged} />)
+        await user.click(screen.getByRole('tab', { name: 'Categorias' }))
+        await user.type(screen.getByLabelText('Nova categoria'), 'Feira')
+        await user.click(screen.getByRole('button', { name: 'Criar categoria' }))
+        await waitFor(() => expect(onCategoriesChanged).toHaveBeenLastCalledWith(
+            expect.arrayContaining([expect.objectContaining({ id: 'created', label: 'Feira' })]),
+        ))
+
+        await user.type(screen.getByLabelText('Novo nome'), 'Feira livre')
+        await user.click(screen.getByRole('button', { name: 'Renomear' }))
+        await waitFor(() => expect(onCategoriesChanged).toHaveBeenLastCalledWith(
+            expect.arrayContaining([expect.objectContaining({ id: 'created', label: 'Feira livre' })]),
+        ))
+
+        await user.click(screen.getByRole('button', { name: 'Mesclar' }))
+        await waitFor(() => expect(onCategoriesChanged).toHaveBeenLastCalledWith(
+            expect.not.arrayContaining([expect.objectContaining({ id: 'created' })]),
+        ))
+    })
+
     it('renames and merges household categories through their API actions', async () => {
         const user = userEvent.setup()
         const service = serviceMock()

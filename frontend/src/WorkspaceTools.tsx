@@ -31,7 +31,7 @@ function saveDownload(blob: Blob, filename: string) {
     URL.revokeObjectURL(url)
 }
 
-export default function WorkspaceTools({ service = householdService, onDataDeleted, reviewRequest = 0, expenseRefreshRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; reviewRequest?: number; expenseRefreshRequest?: number }) {
+export default function WorkspaceTools({ service = householdService, onDataDeleted, onCategoriesChanged, reviewRequest = 0, expenseRefreshRequest = 0 }: { service?: HouseholdService; onDataDeleted?: () => void; onCategoriesChanged?: (categories: HouseholdCategory[]) => void; reviewRequest?: number; expenseRefreshRequest?: number }) {
     const [tab, setTab] = useState<Tab>('review')
     const [categories, setCategories] = useState<HouseholdCategory[]>([])
     const [expenses, setExpenses] = useState<HouseholdExpense[]>([])
@@ -116,6 +116,12 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         setMonthlyExpenseCount(monthly.totalCount)
     }
 
+    async function refreshCategories() {
+        const updatedCategories = await service.listCategories()
+        setCategories(updatedCategories)
+        onCategoriesChanged?.(updatedCategories)
+    }
+
     useEffect(() => {
         if (tab !== 'review') return
         let active = true
@@ -178,7 +184,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         event.preventDefault()
         void perform(async () => {
             const category = await service.createCategory(categoryLabel.trim())
-            setCategories(await service.listCategories())
+            await refreshCategories()
             setCategoryLabel('')
             setRenameId(category.id)
         }, 'Categoria criada.')
@@ -188,7 +194,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         event.preventDefault()
         void perform(async () => {
             await service.renameCategory(renameId, renameLabel.trim())
-            setCategories(await service.listCategories())
+            await refreshCategories()
             setRenameLabel('')
         }, 'Categoria atualizada.')
     }
@@ -197,7 +203,7 @@ export default function WorkspaceTools({ service = householdService, onDataDelet
         event.preventDefault()
         void perform(async () => {
             await service.mergeCategories(selectedMergeSourceId, selectedMergeTargetId)
-            setCategories(await service.listCategories())
+            await refreshCategories()
             await refreshExpenses()
         }, 'Categorias mescladas e despesas reatribuídas.')
     }

@@ -242,7 +242,9 @@ export default function App({ service = defaultService }: { service?: RunService
                     {selected ? <Results result={selected} categoryLabel={categoryLabel} onReview={() => setReviewRequest(value => value + 1)} /> : <div className="empty-result"><span className={`empty-icon ${running ? 'is-running' : ''}`}>{running ? <LoaderCircle className="spin" size={32} /> : <ReceiptText size={34} strokeWidth={1.3} />}</span><h3>{running ? statusPresentation.running.label : 'Nenhum resultado por aqui'}</h3><p>{running ? 'Aguardando o resultado da execução.' : 'Nenhuma despesa registrada nesta sessão.'}</p><div className="empty-ledger" aria-hidden="true"><span /><span /><span /></div></div>}
                 </section>
             </div>
-            {service === defaultService && <WorkspaceTools reviewRequest={reviewRequest} expenseRefreshRequest={expenseRefreshRequest} onDataDeleted={() => {
+            {service === defaultService && <WorkspaceTools reviewRequest={reviewRequest} expenseRefreshRequest={expenseRefreshRequest} onCategoriesChanged={categories => {
+                setCategoryOptions(categories.filter(category => category.is_active).map(({ id, label }) => ({ id, label })))
+            }} onDataDeleted={() => {
                 historyGeneration.current += 1
                 setHistoryLoading(false)
                 setHistoryError(null)
