@@ -17,6 +17,7 @@ description: Mapping of AAMAD epics to agent personas, actions, and output artif
 | QA           | @qa.eng        | qa.md                  | SAD: Testing, PRD: QA Plan     | *qa               |
 | Evals        | @qa.eng        | evals.md               | SAD: Testing §9 (criteria table), PRD: Success Metrics | *run-evals |
 | Security     | @security.eng  | security.md            | SAD: Security, PRD: Security   | *assess-security  |
+| Presentation | @presentation.eng | presentation.pptx + presentation.md | User brief, source material, and brand/template guidance | *create-presentation |
 | Deploy       | @devops.eng    | deploy.md              | SAD: DevOps & Deployment       | *prepare-release  |
 
 ## Execution Notes

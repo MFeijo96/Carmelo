@@ -1,0 +1,175 @@
+ROTEIRO DE APRESENTAÇÃO — AAMAD E CREWAI
+
+Objetivo
+Inspirar pessoas sem formação em tecnologia a tirar ideias do papel. Começar com
+uma provocação, contextualizar a iniciativa, apresentar o AAMAD e só então
+mostrar o produto-exemplo. Explicar o papel do CrewAI em linguagem acessível.
+
+Mensagem central
+Não é preciso saber construir tudo sozinho nem dominar tecnologia para começar
+a desenvolver uma solução. Uma ideia clara, conhecimento do problema e um
+processo organizado ajudam a dar os primeiros passos.
+
+Público
+Pessoas sem experiência ou formação na área de tecnologia.
+
+ROTEIRO DOS SLIDES
+
+1. Quem está falando com vocês?
+
+Apresentar-se brevemente:
+- Mauricio;
+- há quase cinco anos na Cognizant;
+- atualmente Tech Lead no projeto da Alarm;
+- trajetória com foco no desenvolvimento de aplicações para dispositivos Android.
+
+Conectar a experiência pessoal ao tema: “Minha experiência profissional sempre
+esteve muito ligada à tecnologia. Hoje quero mostrar que, para começar a pensar
+em um produto, também é essencial conhecer um problema e ter vontade de
+resolvê-lo — não é preciso chegar com todas as respostas técnicas.”
+
+Visual sugerido: nome, função atual e uma imagem simples relacionada a aplicativos
+ou dispositivos móveis. Manter a introdução breve para abrir espaço à história
+do projeto e à participação do público.
+
+2. Boas ideias não são exclusivas de quem programa
+
+Começar convidando o público a lembrar de uma ideia que já teve e nunca colocou
+em prática: um aplicativo para resolver um incômodo do dia a dia, um serviço
+melhor para a comunidade ou uma maneira mais simples de organizar uma tarefa.
+
+Usar a provocação: “E aquela ideia milionária que você nunca tirou do papel
+porque faltava alguém para desenvolver?” Em seguida, ampliar a mensagem: uma
+boa ideia não precisa nascer pronta, e não é preciso ser programador para dar o
+primeiro passo. Conhecer o problema e as pessoas que o enfrentam também é parte
+essencial de criar uma solução.
+
+Brincadeira leve opcional: “Pode ser que a ideia não seja milionária — mas se
+resolver aquele problema que irrita você toda semana, já vale uma conversa.”
+
+Visual sugerido: mural com ideias cotidianas e a pergunta “O que você criaria se
+pudesse começar hoje?”. Tratar “ideia milionária” como uma provocação inspiradora,
+sem sugerir que o sucesso financeiro seja garantido.
+
+3. Como este projeto foi desenvolvido
+
+Contextualizar a iniciativa: este projeto foi promovido pela Cognizant em
+conjunto com o professor Carmelo, para apresentar a ferramenta que ele próprio
+desenvolveu.
+
+Explicar que a apresentação vai mostrar como a ferramenta pode apoiar a criação
+de produtos e, depois, acompanhar um exemplo concreto. Ainda não revelar o nome
+do produto: ele será apresentado após explicar o AAMAD.
+
+Transição com leveza: “Antes de abrir a caixa de ferramentas, vamos combinar
+como organizar as peças — prometo que não tem prova no final.”
+
+Nota para revisão: acrescentar mais detalhes sobre a iniciativa, a participação da
+Cognizant e do professor Carmelo quando essas informações forem fornecidas.
+Não presumir datas, objetivos institucionais ou atribuições além do que foi
+confirmado.
+
+4. AAMAD: um caminho organizado da ideia ao produto
+
+Apresentar o AAMAD como uma forma de organizar o desenvolvimento em etapas:
+- Definir: entender o problema, quem precisa da solução e o que é prioridade;
+- Construir: desenvolver uma primeira versão e testar se ela atende ao objetivo;
+- Entregar: preparar a solução, registrar como funciona e identificar o que falta.
+
+Mensagem-chave: o AAMAD ajuda a transformar uma ideia em um trabalho mais claro,
+dividido e revisável. Não é necessário explicar comandos, arquivos ou detalhes
+técnicos para apresentar o benefício do método.
+
+Visual sugerido: uma linha do tempo simples — Definir → Construir → Entregar.
+
+5. Home Financial: uma ferramenta para entender as despesas da casa
+
+Apresentar o Home Financial como o exemplo concreto do projeto: uma ferramenta
+para ajudar a visualizar quanto a casa gasta, para onde vai o dinheiro e como as
+despesas mudam ao longo do tempo.
+
+Visual sugerido: tela inicial ou painel do produto.
+
+6. Como o produto funciona na prática
+
+Fazer uma demonstração breve, explicando ao mesmo tempo o que já é possível
+fazer:
+- adicionar uma despesa manualmente ou importar um arquivo;
+- revisar e corrigir categorias, quando necessário;
+- consultar os gastos e resumos do mês;
+- gerar explicações mensais para ajudar a entender os registros.
+
+Destacar o resultado visível para quem usa, sem entrar em arquitetura ou código.
+
+Explicar com transparência, durante a demonstração, que esta é uma versão
+inicial. O produto não é uma ferramenta de consultoria financeira; os resumos
+servem para ajudar a entender os registros. Usar apenas dados fictícios.
+
+Provocação opcional: “Quem nunca abriu o extrato e pensou: ‘Eu gastei tudo
+isso em quê?’” Seguir com cuidado e sem julgar os hábitos financeiros de ninguém.
+Se for mostrar uma despesa pequena, brincar com a soma de vários “cafezinhos”
+sem sugerir que gastos individuais sejam o problema.
+
+Visual sugerido: demonstração real do fluxo, com dados fictícios; comentar as
+capacidades e limitações no momento em que aparecem na tela.
+
+7. CrewAI: agentes de IA apoiando tarefas do produto
+
+Depois de mostrar o produto, explicar o CrewAI como a tecnologia usada no projeto
+para coordenar agentes de IA em tarefas específicas. No Home Financial, ele apoia
+a classificação de despesas ambíguas e a elaboração de explicações mensais.
+
+Deixar clara a diferença:
+- AAMAD organiza o processo de desenvolvimento do produto;
+- CrewAI ajuda a coordenar agentes de IA dentro do produto.
+
+Ressaltar que a IA é um apoio: resultados podem precisar de revisão e nem toda
+decisão deve ser deixada a cargo de um modelo.
+
+Visual sugerido: mostrar o resultado no produto e, em seguida, um diagrama
+conceitual simples da colaboração entre tarefas/agentes, sem detalhes de código.
+
+8. Possíveis melhorias futuras
+
+Apresentar aqui o que ainda está em construção e possibilidades como próximos
+passos, sem confundir com funcionalidades disponíveis:
+- permitir que várias pessoas usem a mesma casa com contas e permissões;
+- aprimorar a experiência de uso e a revisão das categorias;
+- testar melhor a solução com pessoas que representem o público-alvo;
+- ampliar a persistência e a segurança dos dados antes de qualquer uso real;
+- avaliar integrações ou novas formas de importar despesas, se fizerem sentido.
+
+Explicar que cada melhoria deve partir de necessidades reais, ser priorizada e
+validada. A versão demonstrativa deve continuar usando dados fictícios; não
+recomendar o uso de dados financeiros reais.
+
+Brincadeira leve opcional: “A lista de melhorias é como a lista de compras:
+sempre cabe mais uma ideia; o desafio é escolher o que vem primeiro.”
+
+Visual sugerido: uma trilha “agora → próximo → depois”, identificando as ideias
+como possibilidades.
+
+9. Você também pode começar
+
+Fechar com um convite prático:
+- escolha um problema que você conhece;
+- pense em quem se beneficiaria de uma solução;
+- descreva a menor versão que já seria útil;
+- peça ajuda, teste com pessoas e melhore com o que aprender.
+
+Conclusão: conhecimento do problema e curiosidade são um bom ponto de partida.
+Ferramentas como AAMAD e CrewAI podem apoiar o caminho, mas a direção vem das
+pessoas.
+
+TOM E ORIENTAÇÕES
+
+- Usar linguagem simples, exemplos cotidianos e pouco vocabulário técnico.
+- Apresentar Mauricio brevemente; seguir com uma provocação inspiradora,
+  contextualizar a iniciativa e explicar o AAMAD antes de mencionar ou demonstrar
+  o Home Financial.
+- Apresentar o produto antes de explicar o papel do CrewAI.
+- Usar provocações e brincadeiras com leveza e como opções, sem constranger o
+  público nem fazer humor sobre dificuldades financeiras.
+- Não apresentar possibilidades futuras como entregas existentes.
+- Não inventar métricas, resultados, depoimentos ou detalhes da parceria.
+- Manter a demonstração não técnica e usar somente dados fictícios.

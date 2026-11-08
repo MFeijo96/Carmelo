@@ -15,6 +15,7 @@ alwaysApply: true
 | QA           | @qa.eng        | qa.md                  | SAD: Testing, PRD: QA Plan     | *qa               |
 | Evals        | @qa.eng        | evals.md               | SAD: Testing §9 (criteria table), PRD: Success Metrics | *run-evals |
 | Security     | @security.eng  | security.md            | SAD: Security, PRD: Security   | *assess-security  |
+| Presentation | @presentation.eng | presentation.pptx + presentation.md | User brief, source material, and brand/template guidance | *create-presentation |
 | Deploy       | @devops.eng    | deploy.md              | SAD: DevOps & Deployment       | *prepare-release  |
 
 ## Execution Notes
@@ -22,4 +23,3 @@ alwaysApply: true
 - Build-phase artifacts live under project-context/2.build/; Deliver artifact is project-context/3.deliver/deploy.md.
 - Mark “future work” visibly in UI and docs as needed.
 - Update this index as epics progress or new ones are added.
-
